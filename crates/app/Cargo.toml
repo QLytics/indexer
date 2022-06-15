@@ -1,0 +1,13 @@
+[package]
+name = "near-ql"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-cors = "0.6"
+actix-web = "4"
+dotenv = "0.15"
+env_logger = "0.9"
+near-lake-framework = "0.4"
+near-ql-db = { path = "../app-db" }
+near-ql-indexer = { path = "../app-indexer" }

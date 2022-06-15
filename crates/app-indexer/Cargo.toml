@@ -1,0 +1,13 @@
+[package]
+name = "near-ql-indexer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+futures = "0.3"
+itertools = "0.10"
+near-lake-framework = "0.4"
+near-ql-db = { path = "../app-db" }
+thiserror = "1"
+tokio-stream = "0.1"
