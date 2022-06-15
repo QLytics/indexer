@@ -4,4 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-diesel = { version = "1", features = ["postgres"] }
+bigdecimal = "0.1"
+diesel = { version = "1", features = ["numeric", "postgres", "r2d2"] }
+diesel_migrations = "1"
+near-lake-framework = "0.4"
+r2d2 = "0.8"
+thiserror = "1"
