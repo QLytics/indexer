@@ -1,11 +1,22 @@
-use actix_web::web;
 use near_ql_db::Database;
-use std::env;
+use std::{
+    env,
+    sync::{Arc, RwLock},
+};
+use thiserror::Error;
 
-#[actix_web::main]
-pub async fn main() -> std::io::Result<()> {
+#[tokio::main]
+pub async fn main() -> Result<(), AppError> {
     dotenv::dotenv().ok();
-    let database = web::Data::new(Database::new(&env::var("DATABASE_URL").unwrap()));
-    near_ql_indexer::start_indexing(database.clone());
-    near_ql::main(database).await?.await
+    let database = Arc::new(RwLock::new(Database::new(
+        &env::var("DATABASE_URL").unwrap(),
+    )));
+    near_ql_indexer::start_indexing(database).await?;
+    Ok(())
+}
+
+#[derive(Debug, Error)]
+pub enum AppError {
+    #[error("[Indexer]: {}", _0)]
+    Indexer(#[from] near_ql_indexer::Error),
 }

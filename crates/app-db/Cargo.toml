@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bigdecimal = "0.1"
-diesel = { version = "1", features = ["numeric", "postgres", "r2d2"] }
-diesel_migrations = "1"
-near-lake-framework = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+diesel = { version = "2.0.0-rc.0", features = ["chrono", "r2d2", "sqlite"] }
+diesel_migrations = "2.0.0-rc.0"
+near-lake-framework = "0.5"
 r2d2 = "0.8"
+strum = "0.24"
+strum_macros = "0.24"
 thiserror = "1"
