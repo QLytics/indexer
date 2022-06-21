@@ -9,6 +9,7 @@ futures = "0.3"
 itertools = "0.10"
 near-lake-framework = "0.5"
 near-ql-db = { path = "../app-db" }
+rayon = "1"
 thiserror = "1"
 tokio = "1"
 tokio-stream = "0.1"

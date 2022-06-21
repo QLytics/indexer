@@ -2,6 +2,9 @@
 extern crate diesel;
 
 #[macro_use]
+extern crate serde_json;
+
+#[macro_use]
 extern crate strum;
 
 mod error;
@@ -14,13 +17,14 @@ pub type DbConn = Arc<RwLock<Database>>;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
-pub use models::Transaction;
+pub use models::{Transaction, TransactionAction};
 
 use diesel::{prelude::*, r2d2::ConnectionManager};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use error::Error;
+use parking_lot::RwLock;
 use r2d2::Pool;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 pub struct Database {
     pool: DbPool,
@@ -44,6 +48,24 @@ impl Database {
         diesel::insert_into(transactions::table)
             .values(&transaction)
             .on_conflict(transactions::hash)
+            .do_nothing()
+            // .do_update()
+            // .set(&transaction)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
+    pub fn insert_transaction_action(
+        &mut self,
+        transaction_action: models::TransactionAction,
+    ) -> Result<()> {
+        use schema::transaction_actions;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(transaction_actions::table)
+            .values(&transaction_action)
+            .on_conflict(transaction_actions::hash)
             .do_nothing()
             // .do_update()
             // .set(&transaction)

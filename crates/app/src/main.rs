@@ -1,8 +1,6 @@
 use near_ql_db::Database;
-use std::{
-    env,
-    sync::{Arc, RwLock},
-};
+use parking_lot::RwLock;
+use std::{env, sync::Arc};
 use thiserror::Error;
 
 #[tokio::main]

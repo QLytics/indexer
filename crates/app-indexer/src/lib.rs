@@ -8,7 +8,8 @@ use near_lake_framework::{
     near_indexer_primitives::{IndexerTransactionWithOutcome, StreamerMessage},
     LakeConfigBuilder,
 };
-use near_ql_db::{DbConn, Transaction};
+use near_ql_db::{DbConn, Transaction, TransactionAction};
+use rayon::prelude::*;
 use std::{
     sync::{Arc, RwLock},
     time::{Duration, Instant},
@@ -45,14 +46,14 @@ async fn handle_streamer_message(db: DbConn, msg: StreamerMessage, time: Arc<RwL
 
     let block_hash = msg.block.header.hash;
     let timestamp = msg.block.header.timestamp_nanosec;
-    for shard in msg.shards {
+    msg.shards.into_par_iter().for_each(|shard| {
         let chunk = if let Some(chunk) = shard.chunk {
             chunk
         } else {
-            continue;
+            return;
         };
         let chunk_hash = chunk.header.chunk_hash;
-        chunk.transactions.into_iter().enumerate().for_each(
+        chunk.transactions.into_par_iter().enumerate().for_each(
             |(
                 chunk_index,
                 IndexerTransactionWithOutcome {
@@ -61,6 +62,19 @@ async fn handle_streamer_message(db: DbConn, msg: StreamerMessage, time: Arc<RwL
                     ..
                 },
             )| {
+                transaction.actions.iter().enumerate().for_each(
+                    |(transaction_index, action_view)| {
+                        let transaction_action = TransactionAction::new(
+                            &transaction,
+                            transaction_index as i32,
+                            action_view,
+                        );
+                        db.write()
+                            .insert_transaction_action(transaction_action)
+                            .unwrap();
+                    },
+                );
+
                 let timestamp = timestamp as i64 / 1_000_000;
                 let transaction = Transaction::new(
                     transaction,
@@ -70,8 +84,8 @@ async fn handle_streamer_message(db: DbConn, msg: StreamerMessage, time: Arc<RwL
                     NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000),
                     outcome.execution_outcome.outcome,
                 );
-                db.write().unwrap().insert_transaction(transaction).unwrap();
+                db.write().insert_transaction(transaction).unwrap();
             },
         );
-    }
+    });
 }
