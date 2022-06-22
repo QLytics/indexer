@@ -1,4 +1,17 @@
 table! {
+    receipts (id) {
+        id -> Text,
+        block_hash -> Text,
+        chunk_hash -> Text,
+        chunk_index -> Integer,
+        timestamp -> Timestamp,
+        predecessor_id -> Text,
+        receiver_id -> Text,
+        receipt_kind -> Text,
+    }
+}
+
+table! {
     transaction_actions (hash) {
         hash -> Text,
         transaction_index -> Integer,
@@ -27,6 +40,7 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
+    receipts,
     transaction_actions,
     transactions,
 );

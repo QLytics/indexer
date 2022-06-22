@@ -17,7 +17,7 @@ pub type DbConn = Arc<RwLock<Database>>;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
-pub use models::{Transaction, TransactionAction};
+pub use models::{Receipt, Transaction, TransactionAction};
 
 use diesel::{prelude::*, r2d2::ConnectionManager};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -39,6 +39,21 @@ impl Database {
         let mut conn = pool.get().unwrap();
         conn.run_pending_migrations(MIGRATIONS).unwrap();
         Self { pool }
+    }
+
+    pub fn insert_receipt(&mut self, receipt: models::Receipt) -> Result<()> {
+        use schema::receipts;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(receipts::table)
+            .values(&receipt)
+            .on_conflict(receipts::id)
+            .do_nothing()
+            // .do_update()
+            // .set(&transaction)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
     }
 
     pub fn insert_transaction(&mut self, transaction: models::Transaction) -> Result<()> {

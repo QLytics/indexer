@@ -8,7 +8,7 @@ use near_lake_framework::{
     near_indexer_primitives::{IndexerTransactionWithOutcome, StreamerMessage},
     LakeConfigBuilder,
 };
-use near_ql_db::{DbConn, Transaction, TransactionAction};
+use near_ql_db::{DbConn, Receipt, Transaction, TransactionAction};
 use rayon::prelude::*;
 use std::{
     sync::{Arc, RwLock},
@@ -45,7 +45,9 @@ async fn handle_streamer_message(db: DbConn, msg: StreamerMessage, time: Arc<RwL
     }
 
     let block_hash = msg.block.header.hash;
-    let timestamp = msg.block.header.timestamp_nanosec;
+    let timestamp = msg.block.header.timestamp_nanosec as i64 / 1_000_000;
+    let timestamp = NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000);
+
     msg.shards.into_par_iter().for_each(|shard| {
         let chunk = if let Some(chunk) = shard.chunk {
             chunk
@@ -53,38 +55,58 @@ async fn handle_streamer_message(db: DbConn, msg: StreamerMessage, time: Arc<RwL
             return;
         };
         let chunk_hash = chunk.header.chunk_hash;
-        chunk.transactions.into_par_iter().enumerate().for_each(
-            |(
-                chunk_index,
-                IndexerTransactionWithOutcome {
-                    transaction,
-                    outcome,
-                    ..
-                },
-            )| {
-                transaction.actions.iter().enumerate().for_each(
-                    |(transaction_index, action_view)| {
-                        let transaction_action = TransactionAction::new(
-                            &transaction,
-                            transaction_index as i32,
-                            action_view,
-                        );
-                        db.write()
-                            .insert_transaction_action(transaction_action)
-                            .unwrap();
-                    },
-                );
 
-                let timestamp = timestamp as i64 / 1_000_000;
-                let transaction = Transaction::new(
-                    transaction,
-                    block_hash,
-                    chunk_hash,
-                    chunk_index as i32,
-                    NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000),
-                    outcome.execution_outcome.outcome,
-                );
-                db.write().insert_transaction(transaction).unwrap();
+        rayon::join(
+            || {
+                chunk
+                    .receipts
+                    .into_par_iter()
+                    .enumerate()
+                    .for_each(|(chunk_index, receipt)| {
+                        let receipt = Receipt::new(
+                            receipt,
+                            block_hash,
+                            chunk_hash,
+                            chunk_index as i32,
+                            timestamp,
+                        );
+                        db.write().insert_receipt(receipt).unwrap();
+                    })
+            },
+            || {
+                chunk.transactions.into_par_iter().enumerate().for_each(
+                    |(
+                        chunk_index,
+                        IndexerTransactionWithOutcome {
+                            transaction,
+                            outcome,
+                            ..
+                        },
+                    )| {
+                        transaction.actions.iter().enumerate().for_each(
+                            |(transaction_index, action_view)| {
+                                let transaction_action = TransactionAction::new(
+                                    &transaction,
+                                    transaction_index as i32,
+                                    action_view,
+                                );
+                                db.write()
+                                    .insert_transaction_action(transaction_action)
+                                    .unwrap();
+                            },
+                        );
+
+                        let transaction = Transaction::new(
+                            transaction,
+                            block_hash,
+                            chunk_hash,
+                            chunk_index as i32,
+                            timestamp,
+                            outcome.execution_outcome.outcome,
+                        );
+                        db.write().insert_transaction(transaction).unwrap();
+                    },
+                )
             },
         );
     });

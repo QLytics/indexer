@@ -1,7 +1,10 @@
 use crate::schema::*;
 use chrono::NaiveDateTime;
 use near_lake_framework::near_indexer_primitives::{
-    views::{ActionView, ExecutionOutcomeView, ExecutionStatusView, SignedTransactionView},
+    views::{
+        ActionView, ExecutionOutcomeView, ExecutionStatusView, ReceiptEnumView, ReceiptView,
+        SignedTransactionView,
+    },
     CryptoHash,
 };
 
@@ -25,7 +28,6 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         transaction: SignedTransactionView,
         block_hash: CryptoHash,
@@ -172,6 +174,49 @@ pub enum ActionKind {
     AddKey,
     DeleteKey,
     DeleteAccount,
+}
+
+#[derive(Identifiable, Insertable, Queryable)]
+pub struct Receipt {
+    pub id: String,
+    pub block_hash: String,
+    pub chunk_hash: String,
+    pub chunk_index: i32,
+    pub timestamp: NaiveDateTime,
+    pub predecessor_id: String,
+    pub receiver_id: String,
+    pub receipt_kind: String,
+}
+
+impl Receipt {
+    pub fn new(
+        receipt: ReceiptView,
+        block_hash: CryptoHash,
+        chunk_hash: CryptoHash,
+        chunk_index: i32,
+        timestamp: NaiveDateTime,
+    ) -> Self {
+        Self {
+            id: receipt.receipt_id.to_string(),
+            block_hash: block_hash.to_string(),
+            chunk_hash: chunk_hash.to_string(),
+            chunk_index,
+            timestamp,
+            predecessor_id: receipt.predecessor_id.to_string(),
+            receiver_id: receipt.receiver_id.to_string(),
+            receipt_kind: match receipt.receipt {
+                ReceiptEnumView::Action { .. } => ReceiptKind::Action.to_string(),
+                ReceiptEnumView::Data { .. } => ReceiptKind::Data.to_string(),
+            },
+        }
+    }
+}
+
+#[derive(Display, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum ReceiptKind {
+    Action,
+    Data,
 }
 
 fn escape_json(object: &mut serde_json::Value) {
