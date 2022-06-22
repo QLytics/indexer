@@ -1,5 +1,5 @@
 CREATE TABLE receipts (
-  id TEXT PRIMARY KEY NOT NULL,
+  receipt_id TEXT PRIMARY KEY NOT NULL,
   block_hash TEXT NOT NULL,
   chunk_hash TEXT NOT NULL,
   chunk_index INTEGER NOT NULL,

@@ -11,6 +11,6 @@ CREATE TABLE transactions (
   signature TEXT NOT NULL,
   status TEXT CHECK( status IN ('UNKNOWN','FAILURE','SUCESS_VALUE', 'SUCCESS_RECEIPT_ID') ) NOT NULL,
   receipt_id TEXT NOT NULL,
-  gas_burnt TEXT(20),
-  tokens_burnt TEXT(45)
+  gas_burnt TEXT(20) NOT NULL,
+  tokens_burnt TEXT(45) NOT NULL
 )

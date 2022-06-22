@@ -10,6 +10,7 @@ extern crate strum;
 mod error;
 mod models;
 mod schema;
+pub(crate) mod util;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type DbPool = Pool<ConnectionManager<SqliteConnection>>;
@@ -17,7 +18,10 @@ pub type DbConn = Arc<RwLock<Database>>;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
-pub use models::{Receipt, Transaction, TransactionAction};
+pub use models::{
+    receipts::Receipt, transaction_actions::TransactionAction, transactions::Transaction,
+    ExecutionOutcomeStatus,
+};
 
 use diesel::{prelude::*, r2d2::ConnectionManager};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -41,13 +45,13 @@ impl Database {
         Self { pool }
     }
 
-    pub fn insert_receipt(&mut self, receipt: models::Receipt) -> Result<()> {
+    pub fn insert_receipt(&mut self, receipt: Receipt) -> Result<()> {
         use schema::receipts;
 
         let mut conn = self.pool.get().unwrap();
         diesel::insert_into(receipts::table)
             .values(&receipt)
-            .on_conflict(receipts::id)
+            .on_conflict(receipts::receipt_id)
             .do_nothing()
             // .do_update()
             // .set(&transaction)
@@ -56,7 +60,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn insert_transaction(&mut self, transaction: models::Transaction) -> Result<()> {
+    pub fn insert_transaction(&mut self, transaction: Transaction) -> Result<()> {
         use schema::transactions;
 
         let mut conn = self.pool.get().unwrap();
@@ -73,7 +77,7 @@ impl Database {
 
     pub fn insert_transaction_action(
         &mut self,
-        transaction_action: models::TransactionAction,
+        transaction_action: TransactionAction,
     ) -> Result<()> {
         use schema::transaction_actions;
 
