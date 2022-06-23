@@ -26,7 +26,7 @@ table! {
 }
 
 table! {
-    transaction_actions (hash) {
+    transaction_actions (hash, transaction_index) {
         hash -> Text,
         transaction_index -> Integer,
         action_kind -> Text,

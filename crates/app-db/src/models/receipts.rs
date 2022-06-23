@@ -21,7 +21,7 @@ pub struct Receipt {
 
 impl Receipt {
     pub fn new(
-        receipt: ReceiptView,
+        receipt: &ReceiptView,
         block_hash: CryptoHash,
         chunk_hash: CryptoHash,
         chunk_index: i32,

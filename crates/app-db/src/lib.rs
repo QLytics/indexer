@@ -19,8 +19,8 @@ pub type DbConn = Arc<RwLock<Database>>;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub use models::{
-    receipts::Receipt, transaction_actions::TransactionAction, transactions::Transaction,
-    ExecutionOutcomeStatus,
+    execution_outcomes::ExecutionOutcome, receipts::Receipt,
+    transaction_actions::TransactionAction, transactions::Transaction, ExecutionOutcomeStatus,
 };
 
 use diesel::{prelude::*, r2d2::ConnectionManager};
@@ -60,6 +60,21 @@ impl Database {
         Ok(())
     }
 
+    pub fn insert_receipts(&mut self, receipts: &Vec<Receipt>) -> Result<()> {
+        use schema::receipts;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(receipts::table)
+            .values(receipts)
+            // .on_conflict(receipts::hash)
+            // .do_nothing()
+            // .do_update()
+            // .set(&receipts)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
     pub fn insert_transaction(&mut self, transaction: Transaction) -> Result<()> {
         use schema::transactions;
 
@@ -68,6 +83,21 @@ impl Database {
             .values(&transaction)
             .on_conflict(transactions::hash)
             .do_nothing()
+            // .do_update()
+            // .set(&transaction)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
+    pub fn insert_transactions(&mut self, transactions: &Vec<Transaction>) -> Result<()> {
+        use schema::transactions;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(transactions::table)
+            .values(transactions)
+            // .on_conflict(transactions::hash)
+            // .do_nothing()
             // .do_update()
             // .set(&transaction)
             .execute(&mut conn)
@@ -88,6 +118,57 @@ impl Database {
             .do_nothing()
             // .do_update()
             // .set(&transaction)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
+    pub fn insert_transaction_actions(
+        &mut self,
+        transaction_actions: &Vec<TransactionAction>,
+    ) -> Result<()> {
+        use schema::transaction_actions;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(transaction_actions::table)
+            .values(transaction_actions)
+            // .on_conflict(transaction_actions::hash)
+            // .do_nothing()
+            // .do_update()
+            // .set(&transaction_actions)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
+    pub fn insert_execution_outcome(&mut self, execution_outcome: ExecutionOutcome) -> Result<()> {
+        use schema::execution_outcomes;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(execution_outcomes::table)
+            .values(&execution_outcome)
+            .on_conflict(execution_outcomes::receipt_id)
+            .do_nothing()
+            // .do_update()
+            // .set(&execution_outcome)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
+    pub fn insert_execution_outcomes(
+        &mut self,
+        execution_outcomes: &Vec<ExecutionOutcome>,
+    ) -> Result<()> {
+        use schema::execution_outcomes;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_into(execution_outcomes::table)
+            .values(execution_outcomes)
+            // .on_conflict(execution_outcomes::hash)
+            // .do_nothing()
+            // .do_update()
+            // .set(&execution_outcomes)
             .execute(&mut conn)
             .unwrap();
         Ok(())

@@ -9,6 +9,8 @@ futures = "0.3"
 itertools = "0.10"
 near-lake-framework = "0.5"
 near-ql-db = { path = "../app-db" }
+num_cpus = "1"
+parking_lot = "0.12"
 rayon = "1"
 thiserror = "1"
 tokio = "1"

@@ -1509,6 +1509,8 @@ dependencies = [
  "itertools",
  "near-lake-framework",
  "near-ql-db",
+ "num_cpus",
+ "parking_lot 0.12.1",
  "rayon",
  "thiserror",
  "tokio",
