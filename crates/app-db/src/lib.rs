@@ -64,12 +64,8 @@ impl Database {
         use schema::receipts;
 
         let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(receipts::table)
+        diesel::insert_or_ignore_into(receipts::table)
             .values(receipts)
-            // .on_conflict(receipts::hash)
-            // .do_nothing()
-            // .do_update()
-            // .set(&receipts)
             .execute(&mut conn)
             .unwrap();
         Ok(())
@@ -94,12 +90,8 @@ impl Database {
         use schema::transactions;
 
         let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(transactions::table)
+        diesel::insert_or_ignore_into(transactions::table)
             .values(transactions)
-            // .on_conflict(transactions::hash)
-            // .do_nothing()
-            // .do_update()
-            // .set(&transaction)
             .execute(&mut conn)
             .unwrap();
         Ok(())
@@ -130,12 +122,8 @@ impl Database {
         use schema::transaction_actions;
 
         let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(transaction_actions::table)
+        diesel::insert_or_ignore_into(transaction_actions::table)
             .values(transaction_actions)
-            // .on_conflict(transaction_actions::hash)
-            // .do_nothing()
-            // .do_update()
-            // .set(&transaction_actions)
             .execute(&mut conn)
             .unwrap();
         Ok(())
@@ -163,12 +151,8 @@ impl Database {
         use schema::execution_outcomes;
 
         let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(execution_outcomes::table)
+        diesel::insert_or_ignore_into(execution_outcomes::table)
             .values(execution_outcomes)
-            // .on_conflict(execution_outcomes::hash)
-            // .do_nothing()
-            // .do_update()
-            // .set(&execution_outcomes)
             .execute(&mut conn)
             .unwrap();
         Ok(())
