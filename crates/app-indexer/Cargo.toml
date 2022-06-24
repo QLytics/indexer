@@ -6,8 +6,10 @@ edition = "2021"
 [dependencies]
 chrono = "0.4"
 futures = "0.3"
+humantime = "2"
 itertools = "0.10"
 near-lake-framework = "0.5"
+near-jsonrpc-client = "0.4.0-beta.0"
 near-ql-db = { path = "../app-db" }
 num_cpus = "1"
 parking_lot = "0.12"

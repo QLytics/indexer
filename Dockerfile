@@ -45,5 +45,4 @@ COPY run.sh .
 
 ENV RUST_BACKTRACE=1
 
-# ENTRYPOINT [ "ls", "/app/db" ]
 ENTRYPOINT [ "./run.sh" ]
