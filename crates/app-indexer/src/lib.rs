@@ -12,6 +12,7 @@ use near_ql_db::{DbConn, ExecutionOutcome, Receipt, Transaction, TransactionActi
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use std::{
+    env,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -20,7 +21,12 @@ use tokio_stream::wrappers::ReceiverStream;
 pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
     let config = LakeConfigBuilder::default()
         .mainnet()
-        .start_block_height(60000000)
+        .start_block_height(0)
+        .start_block_height(
+            env::var("START_BLOCK_HEIGHT")
+                .map(|s| s.parse::<u64>().unwrap_or_default())
+                .unwrap_or_default(),
+        )
         .build()
         // TODO: LakeConfigBuildError
         .unwrap();
