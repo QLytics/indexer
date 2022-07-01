@@ -6,5 +6,6 @@ CREATE TABLE receipts (
   timestamp DATETIME NOT NULL,
   predecessor_id TEXT NOT NULL,
   receiver_id TEXT NOT NULL,
-  receipt_kind TEXT CHECK( receipt_kind IN ('ACTION', 'DATA') ) NOT NULL
+  receipt_kind TEXT CHECK( receipt_kind IN ('ACTION', 'DATA') ) NOT NULL,
+  transaction_hash TEXT NOT NULL
 )

@@ -1745,18 +1745,15 @@ name = "near-ql-indexer"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "futures",
  "humantime",
  "itertools",
  "near-jsonrpc-client",
  "near-lake-framework",
  "near-ql-db",
- "num_cpus",
  "parking_lot 0.12.1",
  "rayon",
  "thiserror",
  "tokio",
- "tokio-stream",
 ]
 
 [[package]]

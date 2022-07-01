@@ -27,12 +27,12 @@ pub struct Transaction {
 
 impl Transaction {
     pub fn new(
-        transaction: SignedTransactionView,
+        transaction: &SignedTransactionView,
         block_hash: CryptoHash,
         chunk_hash: CryptoHash,
         chunk_index: i32,
         timestamp: NaiveDateTime,
-        outcome: ExecutionOutcomeView,
+        outcome: &ExecutionOutcomeView,
     ) -> Self {
         Self {
             hash: transaction.hash.to_string(),
@@ -45,7 +45,7 @@ impl Transaction {
             nonce: transaction.nonce.to_string(),
             receiver_id: transaction.receiver_id.to_string(),
             signature: transaction.signature.to_string(),
-            status: ExecutionOutcomeStatus::from(outcome.status).to_string(),
+            status: ExecutionOutcomeStatus::from(outcome.status.clone()).to_string(),
             receipt_id: outcome.receipt_ids.first().unwrap().to_string(),
             gas_burnt: outcome.gas_burnt.to_string(),
             tokens_burnt: outcome.tokens_burnt.to_string(),

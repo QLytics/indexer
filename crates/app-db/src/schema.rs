@@ -22,6 +22,7 @@ table! {
         predecessor_id -> Text,
         receiver_id -> Text,
         receipt_kind -> Text,
+        transaction_hash -> Text,
     }
 }
 

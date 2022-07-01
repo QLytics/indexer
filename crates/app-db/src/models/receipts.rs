@@ -17,6 +17,7 @@ pub struct Receipt {
     pub predecessor_id: String,
     pub receiver_id: String,
     pub receipt_kind: String,
+    pub transaction_hash: String,
 }
 
 impl Receipt {
@@ -26,6 +27,7 @@ impl Receipt {
         chunk_hash: CryptoHash,
         chunk_index: i32,
         timestamp: NaiveDateTime,
+        transaction_hash: CryptoHash,
     ) -> Self {
         Self {
             receipt_id: receipt.receipt_id.to_string(),
@@ -39,6 +41,7 @@ impl Receipt {
                 ReceiptEnumView::Action { .. } => ReceiptKind::Action.to_string(),
                 ReceiptEnumView::Data { .. } => ReceiptKind::Data.to_string(),
             },
+            transaction_hash: transaction_hash.to_string(),
         }
     }
 }
