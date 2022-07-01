@@ -52,3 +52,21 @@ pub enum ReceiptKind {
     Action,
     Data,
 }
+
+#[derive(Identifiable, Insertable, Queryable)]
+#[diesel(primary_key(data_id))]
+pub struct DataReceipt {
+    data_id: String,
+    receipt_id: String,
+    data: Option<Vec<u8>>,
+}
+
+impl DataReceipt {
+    pub fn new(data_id: CryptoHash, receipt_id: CryptoHash, data: Option<Vec<u8>>) -> Self {
+        Self {
+            data_id: data_id.to_string(),
+            receipt_id: receipt_id.to_string(),
+            data,
+        }
+    }
+}

@@ -1,4 +1,12 @@
 table! {
+    data_receipts (data_id) {
+        data_id -> Text,
+        receipt_id -> Text,
+        data -> Nullable<Binary>,
+    }
+}
+
+table! {
     execution_outcome_receipts (receipt_id, index_in_execution_outcome) {
         receipt_id -> Text,
         index_in_execution_outcome -> Integer,
@@ -63,6 +71,7 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
+    data_receipts,
     execution_outcome_receipts,
     execution_outcomes,
     receipts,

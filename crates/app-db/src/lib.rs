@@ -20,7 +20,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub use models::{
     execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
-    receipts::Receipt,
+    receipts::{DataReceipt, Receipt},
     transaction_actions::TransactionAction,
     transactions::Transaction,
     ExecutionOutcomeStatus,
@@ -74,16 +74,12 @@ impl Database {
         Ok(())
     }
 
-    pub fn insert_transaction(&mut self, transaction: Transaction) -> Result<()> {
-        use schema::transactions;
+    pub fn insert_data_receipts(&mut self, data_receipts: &Vec<DataReceipt>) -> Result<()> {
+        use schema::data_receipts;
 
         let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(transactions::table)
-            .values(&transaction)
-            .on_conflict(transactions::hash)
-            .do_nothing()
-            // .do_update()
-            // .set(&transaction)
+        diesel::insert_or_ignore_into(data_receipts::table)
+            .values(data_receipts)
             .execute(&mut conn)
             .unwrap();
         Ok(())
@@ -100,24 +96,6 @@ impl Database {
         Ok(())
     }
 
-    pub fn insert_transaction_action(
-        &mut self,
-        transaction_action: TransactionAction,
-    ) -> Result<()> {
-        use schema::transaction_actions;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(transaction_actions::table)
-            .values(&transaction_action)
-            .on_conflict(transaction_actions::hash)
-            .do_nothing()
-            // .do_update()
-            // .set(&transaction)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
-    }
-
     pub fn insert_transaction_actions(
         &mut self,
         transaction_actions: &Vec<TransactionAction>,
@@ -127,21 +105,6 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         diesel::insert_or_ignore_into(transaction_actions::table)
             .values(transaction_actions)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
-    }
-
-    pub fn insert_execution_outcome(&mut self, execution_outcome: ExecutionOutcome) -> Result<()> {
-        use schema::execution_outcomes;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_into(execution_outcomes::table)
-            .values(&execution_outcome)
-            .on_conflict(execution_outcomes::receipt_id)
-            .do_nothing()
-            // .do_update()
-            // .set(&execution_outcome)
             .execute(&mut conn)
             .unwrap();
         Ok(())

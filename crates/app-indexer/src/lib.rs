@@ -14,7 +14,8 @@ use near_lake_framework::{
     LakeConfigBuilder,
 };
 use near_ql_db::{
-    DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
+    DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
+    TransactionAction,
 };
 use parking_lot::RwLock;
 use rayon::prelude::*;
@@ -50,6 +51,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
     let transactions = Arc::new(RwLock::new(vec![]));
     let transaction_actions = Arc::new(RwLock::new(vec![]));
     let receipts = Arc::new(RwLock::new(vec![]));
+    let data_receipts = Arc::new(RwLock::new(vec![]));
     let execution_outcomes = Arc::new(RwLock::new(vec![]));
     let execution_outcome_receipts = Arc::new(RwLock::new(vec![]));
 
@@ -66,6 +68,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             transactions.clone(),
             transaction_actions.clone(),
             receipts.clone(),
+            data_receipts.clone(),
             execution_outcomes.clone(),
             execution_outcome_receipts.clone(),
             misses.clone(),
@@ -90,6 +93,12 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             let mut receipts = receipts.write();
             db.write().insert_receipts(&*receipts).unwrap();
             *receipts = vec![];
+        }
+
+        {
+            let mut data_receipts = data_receipts.write();
+            db.write().insert_data_receipts(&*data_receipts).unwrap();
+            *data_receipts = vec![];
         }
 
         {
@@ -124,6 +133,7 @@ async fn handle_streamer_message(
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
+    data_receipts: Arc<RwLock<Vec<DataReceipt>>>,
     execution_outcomes: Arc<RwLock<Vec<ExecutionOutcome>>>,
     execution_outcome_receipts: Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
     misses: Arc<RwLock<u32>>,
@@ -206,6 +216,7 @@ async fn handle_streamer_message(
             chunk_hash,
             timestamp,
             &receipts,
+            &data_receipts,
             &execution_outcomes,
             &execution_outcome_receipts,
             &receipt_id_to_tx_hash,
