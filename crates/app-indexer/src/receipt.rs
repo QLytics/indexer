@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use near_lake_framework::near_indexer_primitives::{
     views::ReceiptEnumView, CryptoHash, IndexerChunkView, IndexerShard, StreamerMessage,
 };
-use near_ql_db::{ExecutionOutcome, Receipt};
+use near_ql_db::{ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
@@ -16,6 +16,7 @@ pub(crate) fn handle_chunk_receipts(
     timestamp: NaiveDateTime,
     receipts: &Arc<RwLock<Vec<Receipt>>>,
     execution_outcomes: &Arc<RwLock<Vec<ExecutionOutcome>>>,
+    execution_outcome_receipts: &Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
     receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     data_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     misses: &Arc<RwLock<u32>>,
@@ -39,6 +40,23 @@ pub(crate) fn handle_chunk_receipts(
                     shard.shard_id,
                 );
                 execution_outcomes.write().push(execution_outcome);
+
+                outcome
+                    .execution_outcome
+                    .outcome
+                    .receipt_ids
+                    .iter()
+                    .enumerate()
+                    .for_each(|(index, receipt_id)| {
+                        let execution_outcome_receipt = ExecutionOutcomeReceipt::new(
+                            outcome.execution_outcome.id,
+                            index as i32,
+                            *receipt_id,
+                        );
+                        execution_outcome_receipts
+                            .write()
+                            .push(execution_outcome_receipt);
+                    });
             }
 
             let removed_receipt = receipt_id_to_tx_hash

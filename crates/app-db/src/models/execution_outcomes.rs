@@ -42,3 +42,25 @@ impl ExecutionOutcome {
         }
     }
 }
+
+#[derive(Identifiable, Insertable, Queryable)]
+#[diesel(primary_key(receipt_id))]
+pub struct ExecutionOutcomeReceipt {
+    pub receipt_id: String,
+    pub index_in_execution_outcome: i32,
+    pub produced_receipt_id: String,
+}
+
+impl ExecutionOutcomeReceipt {
+    pub fn new(
+        receipt_id: CryptoHash,
+        index_in_execution_outcome: i32,
+        produced_receipt_id: CryptoHash,
+    ) -> Self {
+        Self {
+            receipt_id: receipt_id.to_string(),
+            index_in_execution_outcome,
+            produced_receipt_id: produced_receipt_id.to_string(),
+        }
+    }
+}

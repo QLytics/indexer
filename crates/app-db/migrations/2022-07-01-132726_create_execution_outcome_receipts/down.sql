@@ -1,0 +1,1 @@
+DROP TABLE execution_outcome_receipts

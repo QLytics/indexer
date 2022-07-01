@@ -13,7 +13,9 @@ use near_lake_framework::{
     near_indexer_primitives::{views::ReceiptEnumView, CryptoHash, StreamerMessage},
     LakeConfigBuilder,
 };
-use near_ql_db::{DbConn, ExecutionOutcome, Receipt, Transaction, TransactionAction};
+use near_ql_db::{
+    DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
+};
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
@@ -49,6 +51,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
     let transaction_actions = Arc::new(RwLock::new(vec![]));
     let receipts = Arc::new(RwLock::new(vec![]));
     let execution_outcomes = Arc::new(RwLock::new(vec![]));
+    let execution_outcome_receipts = Arc::new(RwLock::new(vec![]));
 
     let misses = Arc::new(RwLock::new(0));
 
@@ -64,6 +67,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             transaction_actions.clone(),
             receipts.clone(),
             execution_outcomes.clone(),
+            execution_outcome_receipts.clone(),
             misses.clone(),
         )
         .await?;
@@ -95,6 +99,14 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
                 .unwrap();
             *execution_outcomes = vec![];
         }
+
+        {
+            let mut execution_outcome_receipts = execution_outcome_receipts.write();
+            db.write()
+                .insert_execution_outcome_receipts(&*execution_outcome_receipts)
+                .unwrap();
+            *execution_outcome_receipts = vec![];
+        }
     }
 
     sender.await.unwrap().unwrap();
@@ -113,6 +125,7 @@ async fn handle_streamer_message(
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
     execution_outcomes: Arc<RwLock<Vec<ExecutionOutcome>>>,
+    execution_outcome_receipts: Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
     misses: Arc<RwLock<u32>>,
 ) -> Result<(), Error> {
     log::log(msg.block.header.height, &client, &time, &eta, &misses).await?;
@@ -194,6 +207,7 @@ async fn handle_streamer_message(
             timestamp,
             &receipts,
             &execution_outcomes,
+            &execution_outcome_receipts,
             &receipt_id_to_tx_hash,
             &data_id_to_tx_hash,
             &misses,

@@ -1,4 +1,12 @@
 table! {
+    execution_outcome_receipts (receipt_id, index_in_execution_outcome) {
+        receipt_id -> Text,
+        index_in_execution_outcome -> Integer,
+        produced_receipt_id -> Text,
+    }
+}
+
+table! {
     execution_outcomes (receipt_id) {
         receipt_id -> Text,
         block_hash -> Text,
@@ -55,6 +63,7 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
+    execution_outcome_receipts,
     execution_outcomes,
     receipts,
     transaction_actions,

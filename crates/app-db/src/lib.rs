@@ -19,8 +19,11 @@ pub type DbConn = Arc<RwLock<Database>>;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub use models::{
-    execution_outcomes::ExecutionOutcome, receipts::Receipt,
-    transaction_actions::TransactionAction, transactions::Transaction, ExecutionOutcomeStatus,
+    execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
+    receipts::Receipt,
+    transaction_actions::TransactionAction,
+    transactions::Transaction,
+    ExecutionOutcomeStatus,
 };
 
 use diesel::{prelude::*, r2d2::ConnectionManager};
@@ -153,6 +156,20 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         diesel::insert_or_ignore_into(execution_outcomes::table)
             .values(execution_outcomes)
+            .execute(&mut conn)
+            .unwrap();
+        Ok(())
+    }
+
+    pub fn insert_execution_outcome_receipts(
+        &mut self,
+        execution_outcome_receipts: &Vec<ExecutionOutcomeReceipt>,
+    ) -> Result<()> {
+        use schema::execution_outcome_receipts;
+
+        let mut conn = self.pool.get().unwrap();
+        diesel::insert_or_ignore_into(execution_outcome_receipts::table)
+            .values(execution_outcome_receipts)
             .execute(&mut conn)
             .unwrap();
         Ok(())
