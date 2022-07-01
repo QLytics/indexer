@@ -116,6 +116,11 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
                 .unwrap();
             *execution_outcome_receipts = vec![];
         }
+
+        receipt_id_to_tx_hash.write().retain(|_, (_, idx)| {
+            *idx += 1;
+            *idx < 15
+        });
     }
 
     sender.await.unwrap().unwrap();
@@ -128,7 +133,7 @@ async fn handle_streamer_message(
     msg: StreamerMessage,
     time: Arc<RwLock<Instant>>,
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
-    receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
+    receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
@@ -173,7 +178,7 @@ async fn handle_streamer_message(
                 if let Some(receipt) = &transaction.outcome.receipt {
                     receipt_id_to_tx_hash
                         .write()
-                        .insert(receipt.receipt_id, transaction.transaction.hash);
+                        .insert(receipt.receipt_id, (transaction.transaction.hash, 0));
                 }
                 transaction
                     .outcome
@@ -184,7 +189,7 @@ async fn handle_streamer_message(
                     .for_each(|receipt_id| {
                         receipt_id_to_tx_hash
                             .write()
-                            .insert(*receipt_id, transaction.transaction.hash);
+                            .insert(*receipt_id, (transaction.transaction.hash, 0));
                     });
             });
             chunk.receipts.iter().for_each(|receipt| {
@@ -193,7 +198,7 @@ async fn handle_streamer_message(
                     if let Some(tx_hash) = removed_data_id {
                         receipt_id_to_tx_hash
                             .write()
-                            .insert(receipt.receipt_id, tx_hash);
+                            .insert(receipt.receipt_id, (tx_hash, 0));
                     } else {
                         // TODO strict mode
                     }

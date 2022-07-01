@@ -18,7 +18,7 @@ pub(crate) fn handle_chunk_receipts(
     data_receipts: &Arc<RwLock<Vec<DataReceipt>>>,
     execution_outcomes: &Arc<RwLock<Vec<ExecutionOutcome>>>,
     execution_outcome_receipts: &Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
-    receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
+    receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     misses: &Arc<RwLock<u32>>,
 ) {
@@ -66,11 +66,11 @@ pub(crate) fn handle_chunk_receipts(
                 data_receipts.write().push(data_receipt);
             }
 
-            let removed_receipt = receipt_id_to_tx_hash
+            let tx_hash = receipt_id_to_tx_hash
                 .write()
                 .get(&receipt_view.receipt_id)
                 .cloned();
-            if let Some(tx_hash) = removed_receipt {
+            if let Some((tx_hash, _)) = tx_hash {
                 let receipt = Receipt::new(
                     receipt_view,
                     block_hash,
@@ -99,7 +99,7 @@ pub(crate) fn handle_chunk_receipts(
 
 pub(crate) fn handle_shard_receipts(
     msg: &StreamerMessage,
-    receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
+    receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
 ) {
     let mut outcome_receipts: Vec<_> = msg
         .shards
