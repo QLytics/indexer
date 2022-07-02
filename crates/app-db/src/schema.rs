@@ -1,4 +1,16 @@
 table! {
+    chunks (chunk_hash) {
+        chunk_hash -> Text,
+        block_hash -> Text,
+        shard_id -> Text,
+        signature -> Text,
+        gas_limit -> Text,
+        gas_used -> Text,
+        author_account_id -> Text,
+    }
+}
+
+table! {
     data_receipts (data_id) {
         data_id -> Text,
         receipt_id -> Text,
@@ -71,6 +83,7 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
+    chunks,
     data_receipts,
     execution_outcome_receipts,
     execution_outcomes,

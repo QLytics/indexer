@@ -14,7 +14,7 @@ use near_lake_framework::{
     LakeConfigBuilder,
 };
 use near_ql_db::{
-    DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
+    Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
     TransactionAction,
 };
 use parking_lot::RwLock;
@@ -48,6 +48,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
     let receipt_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
     let data_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
 
+    let chunks = Arc::new(RwLock::new(vec![]));
     let transactions = Arc::new(RwLock::new(vec![]));
     let transaction_actions = Arc::new(RwLock::new(vec![]));
     let receipts = Arc::new(RwLock::new(vec![]));
@@ -65,6 +66,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             eta.clone(),
             receipt_id_to_tx_hash.clone(),
             data_id_to_tx_hash.clone(),
+            chunks.clone(),
             transactions.clone(),
             transaction_actions.clone(),
             receipts.clone(),
@@ -74,6 +76,12 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             misses.clone(),
         )
         .await?;
+
+        {
+            let mut chunks = chunks.write();
+            db.write().insert_chunks(&*chunks).unwrap();
+            *chunks = vec![];
+        }
 
         {
             let mut transactions = transactions.write();
@@ -135,6 +143,7 @@ async fn handle_streamer_message(
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
+    chunks: Arc<RwLock<Vec<Chunk>>>,
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
@@ -207,16 +216,20 @@ async fn handle_streamer_message(
         });
 
     msg.shards.par_iter().for_each(|shard| {
-        let chunk = if let Some(chunk) = &shard.chunk {
+        let chunk_view = if let Some(chunk) = &shard.chunk {
             chunk
         } else {
             return;
         };
-        let chunk_hash = chunk.header.chunk_hash;
+
+        let chunk = Chunk::new(chunk_view, block_hash);
+        chunks.write().push(chunk);
+
+        let chunk_hash = chunk_view.header.chunk_hash;
 
         handle_chunk_receipts(
             shard,
-            chunk,
+            chunk_view,
             block_hash,
             chunk_hash,
             timestamp,
@@ -230,7 +243,7 @@ async fn handle_streamer_message(
         );
 
         handle_transactions(
-            chunk,
+            chunk_view,
             chunk_hash,
             block_hash,
             timestamp,
