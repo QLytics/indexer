@@ -1709,54 +1709,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "near-ql"
-version = "0.1.0"
-dependencies = [
- "dotenv",
- "env_logger",
- "near-lake-framework",
- "near-ql-db",
- "near-ql-indexer",
- "parking_lot 0.12.1",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "near-ql-db"
-version = "0.1.0"
-dependencies = [
- "base64 0.13.0",
- "chrono",
- "diesel",
- "diesel_migrations",
- "hex",
- "near-lake-framework",
- "parking_lot 0.12.1",
- "r2d2",
- "serde_json",
- "strum",
- "strum_macros",
- "thiserror",
-]
-
-[[package]]
-name = "near-ql-indexer"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "humantime",
- "itertools",
- "near-jsonrpc-client",
- "near-lake-framework",
- "near-ql-db",
- "parking_lot 0.12.1",
- "rayon",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "near-rpc-error-core"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2106,6 +2058,54 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd96a1e8ed2596c337f8eae5f24924ec83f5ad5ab21ea8e455d3566c69fbcaf7"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "qlytics"
+version = "0.1.0"
+dependencies = [
+ "dotenv",
+ "env_logger",
+ "near-lake-framework",
+ "parking_lot 0.12.1",
+ "qlytics-db",
+ "qlytics-indexer",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "qlytics-db"
+version = "0.1.0"
+dependencies = [
+ "base64 0.13.0",
+ "chrono",
+ "diesel",
+ "diesel_migrations",
+ "hex",
+ "near-lake-framework",
+ "parking_lot 0.12.1",
+ "r2d2",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "thiserror",
+]
+
+[[package]]
+name = "qlytics-indexer"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "humantime",
+ "itertools",
+ "near-jsonrpc-client",
+ "near-lake-framework",
+ "parking_lot 0.12.1",
+ "qlytics-db",
+ "rayon",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

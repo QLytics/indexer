@@ -2,8 +2,8 @@ use chrono::NaiveDateTime;
 use near_lake_framework::near_indexer_primitives::{
     CryptoHash, IndexerChunkView, IndexerTransactionWithOutcome,
 };
-use near_ql_db::{Transaction, TransactionAction};
 use parking_lot::RwLock;
+use qlytics_db::{Transaction, TransactionAction};
 use rayon::prelude::*;
 use std::sync::Arc;
 

@@ -13,11 +13,11 @@ use near_lake_framework::{
     near_indexer_primitives::{views::ReceiptEnumView, CryptoHash, StreamerMessage},
     LakeConfigBuilder,
 };
-use near_ql_db::{
+use parking_lot::RwLock;
+use qlytics_db::{
     Block, Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
     Transaction, TransactionAction,
 };
-use parking_lot::RwLock;
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
 use std::{

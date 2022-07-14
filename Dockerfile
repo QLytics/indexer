@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y \
 RUN update-ca-certificates
 
 COPY --from=build \
-    /app/target/release/near-ql \
+    /app/target/release/qlytics \
     .
 COPY run.sh .
 

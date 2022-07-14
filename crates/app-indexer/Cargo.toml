@@ -1,5 +1,5 @@
 [package]
-name = "near-ql-indexer"
+name = "qlytics-indexer"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,7 @@ humantime = "2"
 itertools = "0.10"
 near-lake-framework = "0.5"
 near-jsonrpc-client = "0.4.0-beta.0"
-near-ql-db = { path = "../app-db" }
+qlytics-db = { path = "../app-db" }
 parking_lot = "0.12"
 rayon = "1"
 thiserror = "1"

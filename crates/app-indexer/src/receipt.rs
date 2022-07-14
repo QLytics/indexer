@@ -2,8 +2,8 @@ use chrono::NaiveDateTime;
 use near_lake_framework::near_indexer_primitives::{
     views::ReceiptEnumView, CryptoHash, IndexerChunkView, IndexerShard, StreamerMessage,
 };
-use near_ql_db::{DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
 use parking_lot::RwLock;
+use qlytics_db::{DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
 use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 
