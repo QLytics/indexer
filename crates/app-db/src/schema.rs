@@ -1,4 +1,16 @@
 table! {
+    blocks (hash) {
+        hash -> Text,
+        height -> Text,
+        prev_hash -> Text,
+        timestamp -> Timestamp,
+        total_supply -> Text,
+        gas_price -> Text,
+        author_account_id -> Text,
+    }
+}
+
+table! {
     chunks (chunk_hash) {
         chunk_hash -> Text,
         block_hash -> Text,
@@ -83,6 +95,7 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
+    blocks,
     chunks,
     data_receipts,
     execution_outcome_receipts,

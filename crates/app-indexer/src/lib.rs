@@ -14,8 +14,8 @@ use near_lake_framework::{
     LakeConfigBuilder,
 };
 use near_ql_db::{
-    Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
-    TransactionAction,
+    Block, Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
+    Transaction, TransactionAction,
 };
 use parking_lot::RwLock;
 use rayon::prelude::*;
@@ -48,6 +48,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
     let receipt_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
     let data_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
 
+    let blocks = Arc::new(RwLock::new(vec![]));
     let chunks = Arc::new(RwLock::new(vec![]));
     let transactions = Arc::new(RwLock::new(vec![]));
     let transaction_actions = Arc::new(RwLock::new(vec![]));
@@ -66,6 +67,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             eta.clone(),
             receipt_id_to_tx_hash.clone(),
             data_id_to_tx_hash.clone(),
+            blocks.clone(),
             chunks.clone(),
             transactions.clone(),
             transaction_actions.clone(),
@@ -76,6 +78,12 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
             misses.clone(),
         )
         .await?;
+
+        {
+            let mut blocks = blocks.write();
+            db.write().insert_blocks(&*blocks).unwrap();
+            *blocks = vec![];
+        }
 
         {
             let mut chunks = chunks.write();
@@ -143,6 +151,7 @@ async fn handle_streamer_message(
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
+    blocks: Arc<RwLock<Vec<Block>>>,
     chunks: Arc<RwLock<Vec<Chunk>>>,
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
@@ -157,6 +166,9 @@ async fn handle_streamer_message(
     let block_hash = msg.block.header.hash;
     let timestamp = msg.block.header.timestamp_nanosec as i64 / 1_000_000;
     let timestamp = NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000);
+
+    let block = Block::new(&msg.block, timestamp);
+    blocks.write().push(block);
 
     msg.shards
         .par_iter()
