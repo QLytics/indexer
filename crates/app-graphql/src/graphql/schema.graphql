@@ -23,11 +23,27 @@ input NewBlock {
   author_account_id: String!
 }
 
-type Mutation {
-  addBlocks(blocks: [NewBlock]!): [Block]
+type Chunk {
+  hash: ID!
+  block_hash: String!
+  shard_id: String!
+  signature: String!
+  gas_limit: String!
+  gas_used: String!
+  author_account_id: String!
 }
 
-type Query {
-  block(hash: ID!): Block
-  blocks(since_hash: ID!, limit: Int = 100): [Block]
+input NewChunk {
+  hash: ID!
+  block_hash: String!
+  shard_id: String!
+  signature: String!
+  gas_limit: String!
+  gas_used: String!
+  author_account_id: String!
+}
+
+type Mutation {
+  addBlocks(blocks: [NewBlock]!): [Block]
+  addChunks(chunks: [NewChunk]!): [Chunk]
 }

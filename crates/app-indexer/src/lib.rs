@@ -17,10 +17,10 @@ use near_lake_framework::{
 };
 use parking_lot::RwLock;
 use qlytics_db::{
-    Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
+    DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
     TransactionAction,
 };
-use qlytics_graphql::add_blocks::NewBlock;
+use qlytics_graphql::{NewBlock, NewChunk};
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
 use std::{
@@ -82,55 +82,49 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
         )
         .await?;
 
-        send_data(blocks.clone()).await?;
+        send_data(blocks.clone(), chunks.clone()).await?;
 
-        {
-            let mut chunks = chunks.write();
-            db.write().insert_chunks(&*chunks).unwrap();
-            *chunks = vec![];
-        }
+        // {
+        //     let mut transactions = transactions.write();
+        //     db.write().insert_transactions(&*transactions).unwrap();
+        //     *transactions = vec![];
+        // }
 
-        {
-            let mut transactions = transactions.write();
-            db.write().insert_transactions(&*transactions).unwrap();
-            *transactions = vec![];
-        }
+        // {
+        //     let mut transaction_actions = transaction_actions.write();
+        //     db.write()
+        //         .insert_transaction_actions(&*transaction_actions)
+        //         .unwrap();
+        //     *transaction_actions = vec![];
+        // }
 
-        {
-            let mut transaction_actions = transaction_actions.write();
-            db.write()
-                .insert_transaction_actions(&*transaction_actions)
-                .unwrap();
-            *transaction_actions = vec![];
-        }
+        // {
+        //     let mut receipts = receipts.write();
+        //     db.write().insert_receipts(&*receipts).unwrap();
+        //     *receipts = vec![];
+        // }
 
-        {
-            let mut receipts = receipts.write();
-            db.write().insert_receipts(&*receipts).unwrap();
-            *receipts = vec![];
-        }
+        // {
+        //     let mut data_receipts = data_receipts.write();
+        //     db.write().insert_data_receipts(&*data_receipts).unwrap();
+        //     *data_receipts = vec![];
+        // }
 
-        {
-            let mut data_receipts = data_receipts.write();
-            db.write().insert_data_receipts(&*data_receipts).unwrap();
-            *data_receipts = vec![];
-        }
+        // {
+        //     let mut execution_outcomes = execution_outcomes.write();
+        //     db.write()
+        //         .insert_execution_outcomes(&*execution_outcomes)
+        //         .unwrap();
+        //     *execution_outcomes = vec![];
+        // }
 
-        {
-            let mut execution_outcomes = execution_outcomes.write();
-            db.write()
-                .insert_execution_outcomes(&*execution_outcomes)
-                .unwrap();
-            *execution_outcomes = vec![];
-        }
-
-        {
-            let mut execution_outcome_receipts = execution_outcome_receipts.write();
-            db.write()
-                .insert_execution_outcome_receipts(&*execution_outcome_receipts)
-                .unwrap();
-            *execution_outcome_receipts = vec![];
-        }
+        // {
+        //     let mut execution_outcome_receipts = execution_outcome_receipts.write();
+        //     db.write()
+        //         .insert_execution_outcome_receipts(&*execution_outcome_receipts)
+        //         .unwrap();
+        //     *execution_outcome_receipts = vec![];
+        // }
 
         receipt_id_to_tx_hash.write().retain(|_, (_, idx)| {
             *idx += 1;
@@ -151,7 +145,7 @@ async fn handle_streamer_message(
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     blocks: Arc<RwLock<Vec<NewBlock>>>,
-    chunks: Arc<RwLock<Vec<Chunk>>>,
+    chunks: Arc<RwLock<Vec<NewChunk>>>,
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
@@ -233,7 +227,7 @@ async fn handle_streamer_message(
             return;
         };
 
-        let chunk = Chunk::new(chunk_view, block_hash);
+        let chunk = NewChunk::new(chunk_view, block_hash);
         chunks.write().push(chunk);
 
         let chunk_hash = chunk_view.header.chunk_hash;

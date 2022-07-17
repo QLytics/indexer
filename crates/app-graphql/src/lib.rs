@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
 use graphql_client::GraphQLQuery;
-use near_lake_framework::near_indexer_primitives::views::BlockView;
+use near_lake_framework::near_indexer_primitives::{
+    views::BlockView, CryptoHash, IndexerChunkView,
+};
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -23,3 +25,27 @@ impl add_blocks::NewBlock {
         }
     }
 }
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/schema.graphql",
+    query_path = "src/graphql/chunk-query.graphql",
+    response_derives = "Debug"
+)]
+pub struct AddChunks;
+
+impl add_chunks::NewChunk {
+    pub fn new(chunk_view: &IndexerChunkView, block_hash: CryptoHash) -> Self {
+        Self {
+            hash: chunk_view.header.chunk_hash.to_string(),
+            block_hash: block_hash.to_string(),
+            shard_id: chunk_view.header.shard_id.to_string(),
+            signature: chunk_view.header.signature.to_string(),
+            gas_limit: chunk_view.header.gas_limit.to_string(),
+            gas_used: chunk_view.header.gas_used.to_string(),
+            author_account_id: chunk_view.author.to_string(),
+        }
+    }
+}
+
+pub use {add_blocks::NewBlock, add_chunks::NewChunk};

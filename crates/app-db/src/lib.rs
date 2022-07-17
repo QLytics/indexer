@@ -19,7 +19,6 @@ pub type DbConn = Arc<RwLock<Database>>;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub use models::{
-    chunks::Chunk,
     execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
     receipts::{DataReceipt, Receipt},
     transaction_actions::TransactionAction,
@@ -66,17 +65,6 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         diesel::insert_or_ignore_into(data_receipts::table)
             .values(data_receipts)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
-    }
-
-    pub fn insert_chunks(&mut self, chunks: &Vec<Chunk>) -> Result<()> {
-        use schema::chunks;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_or_ignore_into(chunks::table)
-            .values(chunks)
             .execute(&mut conn)
             .unwrap();
         Ok(())
