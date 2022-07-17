@@ -1,0 +1,5 @@
+mutation AddBlocks($blocks: [NewBlock!]!) {
+  addBlocks(blocks: $blocks) {
+    hash
+  }
+}

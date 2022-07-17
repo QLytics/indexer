@@ -19,7 +19,6 @@ pub type DbConn = Arc<RwLock<Database>>;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub use models::{
-    blocks::Block,
     chunks::Chunk,
     execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
     receipts::{DataReceipt, Receipt},
@@ -48,17 +47,6 @@ impl Database {
         let mut conn = pool.get().unwrap();
         conn.run_pending_migrations(MIGRATIONS).unwrap();
         Self { pool }
-    }
-
-    pub fn insert_blocks(&mut self, blocks: &Vec<Block>) -> Result<()> {
-        use schema::blocks;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_or_ignore_into(blocks::table)
-            .values(blocks)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
     }
 
     pub fn insert_receipts(&mut self, receipts: &Vec<Receipt>) -> Result<()> {

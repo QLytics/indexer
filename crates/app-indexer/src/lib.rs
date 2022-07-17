@@ -3,10 +3,12 @@
 mod error;
 mod log;
 mod receipt;
+mod send;
 mod transaction;
 
 pub use error::Error;
 
+use crate::send::send_data;
 use chrono::NaiveDateTime;
 use near_jsonrpc_client::JsonRpcClient;
 use near_lake_framework::{
@@ -15,9 +17,10 @@ use near_lake_framework::{
 };
 use parking_lot::RwLock;
 use qlytics_db::{
-    Block, Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
-    Transaction, TransactionAction,
+    Chunk, DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
+    TransactionAction,
 };
+use qlytics_graphql::add_blocks::NewBlock;
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
 use std::{
@@ -79,11 +82,7 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
         )
         .await?;
 
-        {
-            let mut blocks = blocks.write();
-            db.write().insert_blocks(&*blocks).unwrap();
-            *blocks = vec![];
-        }
+        send_data(blocks.clone()).await?;
 
         {
             let mut chunks = chunks.write();
@@ -151,7 +150,7 @@ async fn handle_streamer_message(
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
-    blocks: Arc<RwLock<Vec<Block>>>,
+    blocks: Arc<RwLock<Vec<NewBlock>>>,
     chunks: Arc<RwLock<Vec<Chunk>>>,
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
@@ -167,7 +166,7 @@ async fn handle_streamer_message(
     let timestamp = msg.block.header.timestamp_nanosec as i64 / 1_000_000;
     let timestamp = NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000);
 
-    let block = Block::new(&msg.block, timestamp);
+    let block = NewBlock::new(&msg.block, timestamp);
     blocks.write().push(block);
 
     msg.shards

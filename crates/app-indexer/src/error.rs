@@ -7,4 +7,6 @@ pub enum Error {
     // LakeConfigBuild(#[from] LakeConfigBuildError),
     #[error("{:?}", _0)]
     JsonRpc(#[from] JsonRpcError<RpcStatusError>),
+    #[error("{:?}", _0)]
+    Reqwest(#[from] reqwest::Error),
 }
