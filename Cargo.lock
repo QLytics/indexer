@@ -98,6 +98,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eab1c04a571841102f5345a8fc0f6bb3d31c315dec879b5c6e42e40ce7ffa34e"
 
 [[package]]
+name = "async-stream"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dad5c83079eae9969be7fadefe640a1c566901f05ff91ab221de4b6f68d9507e"
+dependencies = [
+ "async-stream-impl",
+ "futures-core",
+]
+
+[[package]]
+name = "async-stream-impl"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10f203db73a71dfa2fb6dd22763990fa26f3d2625a6da2da900d23b87d26be27"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2145,10 +2166,21 @@ dependencies = [
  "env_logger",
  "near-lake-framework",
  "parking_lot 0.12.1",
+ "qlytics-core",
  "qlytics-db",
  "qlytics-indexer",
- "thiserror",
+ "qlytics-send",
  "tokio",
+]
+
+[[package]]
+name = "qlytics-core"
+version = "0.1.0"
+dependencies = [
+ "near-jsonrpc-client",
+ "qlytics-graphql",
+ "reqwest",
+ "thiserror",
 ]
 
 [[package]]
@@ -2183,19 +2215,37 @@ dependencies = [
 name = "qlytics-indexer"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "async-stream",
  "chrono",
+ "futures-core",
  "graphql_client",
  "humantime",
  "itertools",
  "near-jsonrpc-client",
  "near-lake-framework",
  "parking_lot 0.12.1",
+ "qlytics-core",
  "qlytics-db",
  "qlytics-graphql",
  "rayon",
  "reqwest",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "qlytics-send"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "graphql_client",
+ "near-lake-framework",
+ "qlytics-core",
+ "qlytics-graphql",
+ "reqwest",
+ "thiserror",
+ "tokio-stream",
 ]
 
 [[package]]

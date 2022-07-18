@@ -1,0 +1,14 @@
+[package]
+name = "qlytics-send"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+futures-util = "0.3"
+graphql_client = "0.11"
+near-lake-framework = "0.5"
+qlytics-core = { path = "../app-core" }
+qlytics-graphql = { path = "../app-graphql" }
+reqwest = "0.11"
+thiserror = "1"
+tokio-stream = "0.1"

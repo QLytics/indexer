@@ -7,12 +7,14 @@ use near_lake_framework::near_indexer_primitives::{
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "src/graphql/schema.graphql",
-    query_path = "src/graphql/block-query.graphql",
+    query_path = "src/graphql/query.graphql",
     response_derives = "Debug"
 )]
-pub struct AddBlocks;
+pub struct AddBlockData;
 
-impl add_blocks::NewBlock {
+pub use add_block_data::{Block, BlockData, Chunk};
+
+impl add_block_data::Block {
     pub fn new(block_view: &BlockView, timestamp: NaiveDateTime) -> Self {
         Self {
             hash: block_view.header.hash.to_string(),
@@ -26,15 +28,7 @@ impl add_blocks::NewBlock {
     }
 }
 
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "src/graphql/schema.graphql",
-    query_path = "src/graphql/chunk-query.graphql",
-    response_derives = "Debug"
-)]
-pub struct AddChunks;
-
-impl add_chunks::NewChunk {
+impl add_block_data::Chunk {
     pub fn new(chunk_view: &IndexerChunkView, block_hash: CryptoHash) -> Self {
         Self {
             hash: chunk_view.header.chunk_hash.to_string(),
@@ -47,5 +41,3 @@ impl add_chunks::NewChunk {
         }
     }
 }
-
-pub use {add_blocks::NewBlock, add_chunks::NewChunk};

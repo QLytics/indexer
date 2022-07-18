@@ -1,9 +1,12 @@
 schema {
-  query: Query
   mutation: Mutation
 }
 
-type Block {
+type Void {
+  hash: ID!
+}
+
+input Block {
   hash: ID!
   height: String!
   prev_hash: String!
@@ -13,17 +16,7 @@ type Block {
   author_account_id: String!
 }
 
-input NewBlock {
-  hash: ID!
-  height: String!
-  prev_hash: String!
-  timestamp: String!
-  total_supply: String!
-  gas_price: String!
-  author_account_id: String!
-}
-
-type Chunk {
+input Chunk {
   hash: ID!
   block_hash: String!
   shard_id: String!
@@ -33,17 +26,11 @@ type Chunk {
   author_account_id: String!
 }
 
-input NewChunk {
-  hash: ID!
-  block_hash: String!
-  shard_id: String!
-  signature: String!
-  gas_limit: String!
-  gas_used: String!
-  author_account_id: String!
+input BlockData {
+  block: Block!
+  chunks: [Chunk!]!
 }
 
 type Mutation {
-  addBlocks(blocks: [NewBlock]!): [Block]
-  addChunks(chunks: [NewChunk]!): [Chunk]
+  addBlockData(block_data: [BlockData!]!): [Void]
 }

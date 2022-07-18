@@ -1,0 +1,5 @@
+mutation AddBlockData($block_data: [BlockData!]!) {
+  addBlockData(block_data: $block_data) {
+    hash
+  }
+}

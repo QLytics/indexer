@@ -1,26 +1,24 @@
 #![feature(drain_filter)]
 
-mod error;
 mod log;
 mod receipt;
-mod send;
 mod transaction;
 
-pub use error::Error;
-
-use crate::send::send_data;
+use async_stream::try_stream;
 use chrono::NaiveDateTime;
+use futures_core::stream::Stream;
 use near_jsonrpc_client::JsonRpcClient;
 use near_lake_framework::{
     near_indexer_primitives::{views::ReceiptEnumView, CryptoHash, StreamerMessage},
     LakeConfigBuilder,
 };
 use parking_lot::RwLock;
+use qlytics_core::Result;
 use qlytics_db::{
     DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
     TransactionAction,
 };
-use qlytics_graphql::{NewBlock, NewChunk};
+use qlytics_graphql::{Block, BlockData, Chunk};
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
 use std::{
@@ -31,7 +29,7 @@ use std::{
 };
 use transaction::handle_transactions;
 
-pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
+pub fn start_indexing(_db: DbConn) -> impl Stream<Item = Result<BlockData>> {
     let config = LakeConfigBuilder::default()
         .mainnet()
         .start_block_height(
@@ -44,15 +42,13 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
         .unwrap();
     let client = Arc::new(JsonRpcClient::connect("https://rpc.mainnet.near.org"));
 
-    let (sender, mut stream) = near_lake_framework::streamer(config);
+    let (_, mut stream) = near_lake_framework::streamer(config);
 
     let time = Arc::new(RwLock::new(Instant::now()));
     let eta = Arc::new(RwLock::new(VecDeque::new()));
     let receipt_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
     let data_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
 
-    let blocks = Arc::new(RwLock::new(vec![]));
-    let chunks = Arc::new(RwLock::new(vec![]));
     let transactions = Arc::new(RwLock::new(vec![]));
     let transaction_actions = Arc::new(RwLock::new(vec![]));
     let receipts = Arc::new(RwLock::new(vec![]));
@@ -62,78 +58,33 @@ pub async fn start_indexing(db: DbConn) -> Result<(), Error> {
 
     let misses = Arc::new(RwLock::new(0));
 
-    while let Some(msg) = stream.recv().await {
-        handle_streamer_message(
-            client.clone(),
-            msg,
-            time.clone(),
-            eta.clone(),
-            receipt_id_to_tx_hash.clone(),
-            data_id_to_tx_hash.clone(),
-            blocks.clone(),
-            chunks.clone(),
-            transactions.clone(),
-            transaction_actions.clone(),
-            receipts.clone(),
-            data_receipts.clone(),
-            execution_outcomes.clone(),
-            execution_outcome_receipts.clone(),
-            misses.clone(),
-        )
-        .await?;
+    try_stream! {
+        while let Some(msg) = stream.recv().await {
+            let block_data = handle_streamer_message(
+                client.clone(),
+                msg,
+                time.clone(),
+                eta.clone(),
+                receipt_id_to_tx_hash.clone(),
+                data_id_to_tx_hash.clone(),
+                transactions.clone(),
+                transaction_actions.clone(),
+                receipts.clone(),
+                data_receipts.clone(),
+                execution_outcomes.clone(),
+                execution_outcome_receipts.clone(),
+                misses.clone(),
+            )
+            .await?;
 
-        send_data(blocks.clone(), chunks.clone()).await?;
+            yield block_data;
 
-        // {
-        //     let mut transactions = transactions.write();
-        //     db.write().insert_transactions(&*transactions).unwrap();
-        //     *transactions = vec![];
-        // }
-
-        // {
-        //     let mut transaction_actions = transaction_actions.write();
-        //     db.write()
-        //         .insert_transaction_actions(&*transaction_actions)
-        //         .unwrap();
-        //     *transaction_actions = vec![];
-        // }
-
-        // {
-        //     let mut receipts = receipts.write();
-        //     db.write().insert_receipts(&*receipts).unwrap();
-        //     *receipts = vec![];
-        // }
-
-        // {
-        //     let mut data_receipts = data_receipts.write();
-        //     db.write().insert_data_receipts(&*data_receipts).unwrap();
-        //     *data_receipts = vec![];
-        // }
-
-        // {
-        //     let mut execution_outcomes = execution_outcomes.write();
-        //     db.write()
-        //         .insert_execution_outcomes(&*execution_outcomes)
-        //         .unwrap();
-        //     *execution_outcomes = vec![];
-        // }
-
-        // {
-        //     let mut execution_outcome_receipts = execution_outcome_receipts.write();
-        //     db.write()
-        //         .insert_execution_outcome_receipts(&*execution_outcome_receipts)
-        //         .unwrap();
-        //     *execution_outcome_receipts = vec![];
-        // }
-
-        receipt_id_to_tx_hash.write().retain(|_, (_, idx)| {
-            *idx += 1;
-            *idx < 15
-        });
+            receipt_id_to_tx_hash.write().retain(|_, (_, idx)| {
+                *idx += 1;
+                *idx < 15
+            });
+        }
     }
-
-    sender.await.unwrap().unwrap();
-    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -144,8 +95,6 @@ async fn handle_streamer_message(
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
-    blocks: Arc<RwLock<Vec<NewBlock>>>,
-    chunks: Arc<RwLock<Vec<NewChunk>>>,
     transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
@@ -153,15 +102,14 @@ async fn handle_streamer_message(
     execution_outcomes: Arc<RwLock<Vec<ExecutionOutcome>>>,
     execution_outcome_receipts: Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
     misses: Arc<RwLock<u32>>,
-) -> Result<(), Error> {
+) -> Result<BlockData> {
     log::log(msg.block.header.height, &client, &time, &eta, &misses).await?;
 
     let block_hash = msg.block.header.hash;
     let timestamp = msg.block.header.timestamp_nanosec as i64 / 1_000_000;
     let timestamp = NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000);
 
-    let block = NewBlock::new(&msg.block, timestamp);
-    blocks.write().push(block);
+    let block = Block::new(&msg.block, timestamp);
 
     msg.shards
         .par_iter()
@@ -220,44 +168,49 @@ async fn handle_streamer_message(
             });
         });
 
-    msg.shards.par_iter().for_each(|shard| {
-        let chunk_view = if let Some(chunk) = &shard.chunk {
-            chunk
-        } else {
-            return;
-        };
+    let chunks = msg
+        .shards
+        .par_iter()
+        .filter_map(|shard| {
+            let chunk_view = if let Some(chunk) = &shard.chunk {
+                chunk
+            } else {
+                return None;
+            };
 
-        let chunk = NewChunk::new(chunk_view, block_hash);
-        chunks.write().push(chunk);
+            let chunk = Chunk::new(chunk_view, block_hash);
 
-        let chunk_hash = chunk_view.header.chunk_hash;
+            let chunk_hash = chunk_view.header.chunk_hash;
 
-        handle_chunk_receipts(
-            shard,
-            chunk_view,
-            block_hash,
-            chunk_hash,
-            timestamp,
-            &receipts,
-            &data_receipts,
-            &execution_outcomes,
-            &execution_outcome_receipts,
-            &receipt_id_to_tx_hash,
-            &data_id_to_tx_hash,
-            &misses,
-        );
+            handle_chunk_receipts(
+                shard,
+                chunk_view,
+                block_hash,
+                chunk_hash,
+                timestamp,
+                &receipts,
+                &data_receipts,
+                &execution_outcomes,
+                &execution_outcome_receipts,
+                &receipt_id_to_tx_hash,
+                &data_id_to_tx_hash,
+                &misses,
+            );
 
-        handle_transactions(
-            chunk_view,
-            chunk_hash,
-            block_hash,
-            timestamp,
-            &transactions,
-            &transaction_actions,
-        );
-    });
+            handle_transactions(
+                chunk_view,
+                chunk_hash,
+                block_hash,
+                timestamp,
+                &transactions,
+                &transaction_actions,
+            );
+
+            Some(chunk)
+        })
+        .collect();
 
     handle_shard_receipts(&msg, &receipt_id_to_tx_hash);
 
-    Ok(())
+    Ok(BlockData { block, chunks })
 }

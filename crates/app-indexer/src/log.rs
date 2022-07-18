@@ -1,7 +1,7 @@
-use crate::Error;
 use chrono::{DateTime, Utc};
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use parking_lot::RwLock;
+use qlytics_core::Result;
 use std::{
     collections::VecDeque,
     sync::Arc,
@@ -15,7 +15,7 @@ pub(crate) async fn log(
     time: &Arc<RwLock<Instant>>,
     eta: &Arc<RwLock<VecDeque<(Duration, u64)>>>,
     misses: &Arc<RwLock<u32>>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let mut time = time.write();
     let elapsed = time.elapsed();
     if elapsed > Duration::from_secs(10) {
@@ -52,7 +52,7 @@ pub(crate) async fn log(
     Ok(())
 }
 
-async fn get_current_block_height(client: &Arc<JsonRpcClient>) -> Result<u64, Error> {
+async fn get_current_block_height(client: &Arc<JsonRpcClient>) -> Result<u64> {
     let status = client.call(methods::status::RpcStatusRequest).await?;
 
     Ok(status.sync_info.latest_block_height)

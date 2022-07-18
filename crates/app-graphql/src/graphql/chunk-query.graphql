@@ -1,5 +1,0 @@
-mutation AddChunks($chunks: [NewChunk!]!) {
-  addChunks(chunks: $chunks) {
-    hash
-  }
-}
