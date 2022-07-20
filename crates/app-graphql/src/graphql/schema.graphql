@@ -26,9 +26,27 @@ input Chunk {
   author_account_id: String!
 }
 
+input Transaction {
+  hash: String!
+  block_hash: String!
+  chunk_hash: String!
+  chunk_index: Int!
+  timestamp: String!
+  signer_id: String!
+  public_key: String!
+  nonce: String!
+  receiver_id: String!
+  signature: String!
+  status: String!
+  receipt_id: String!
+  gas_burnt: String!
+  tokens_burnt: String!
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
+  transactions: [Transaction!]!
 }
 
 type Mutation {

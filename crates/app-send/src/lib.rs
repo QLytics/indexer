@@ -13,7 +13,7 @@ pub async fn send_data(stream: impl Stream<Item = Result<BlockData>>) -> Result<
     let mut data = vec![];
     while let Some(block_data) = stream.next().await {
         data.push(block_data?);
-        if data.len() >= 5 {
+        if data.len() >= 10 {
             send_block_data(&client, data.drain(..).collect()).await?;
         }
     }

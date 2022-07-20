@@ -1,8 +1,10 @@
 use chrono::NaiveDateTime;
 use graphql_client::GraphQLQuery;
 use near_lake_framework::near_indexer_primitives::{
-    views::BlockView, CryptoHash, IndexerChunkView,
+    views::{BlockView, ExecutionOutcomeView, ExecutionStatusView, SignedTransactionView},
+    CryptoHash, IndexerChunkView,
 };
+use strum::{Display, EnumString};
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -12,7 +14,7 @@ use near_lake_framework::near_indexer_primitives::{
 )]
 pub struct AddBlockData;
 
-pub use add_block_data::{Block, BlockData, Chunk};
+pub use add_block_data::{Block, BlockData, Chunk, Transaction};
 
 impl add_block_data::Block {
     pub fn new(block_view: &BlockView, timestamp: NaiveDateTime) -> Self {
@@ -40,4 +42,52 @@ impl add_block_data::Chunk {
             author_account_id: chunk_view.author.to_string(),
         }
     }
+}
+
+impl add_block_data::Transaction {
+    pub fn new(
+        transaction: &SignedTransactionView,
+        block_hash: CryptoHash,
+        chunk_hash: CryptoHash,
+        chunk_index: i64,
+        timestamp: NaiveDateTime,
+        outcome: &ExecutionOutcomeView,
+    ) -> Self {
+        Self {
+            hash: transaction.hash.to_string(),
+            block_hash: block_hash.to_string(),
+            chunk_hash: chunk_hash.to_string(),
+            chunk_index,
+            timestamp: timestamp.timestamp().to_string(),
+            signer_id: transaction.signer_id.to_string(),
+            public_key: transaction.public_key.to_string(),
+            nonce: transaction.nonce.to_string(),
+            receiver_id: transaction.receiver_id.to_string(),
+            signature: transaction.signature.to_string(),
+            status: ExecutionOutcomeStatus::from(outcome.status.clone()).to_string(),
+            receipt_id: outcome.receipt_ids.first().unwrap().to_string(),
+            gas_burnt: outcome.gas_burnt.to_string(),
+            tokens_burnt: outcome.tokens_burnt.to_string(),
+        }
+    }
+}
+
+impl From<ExecutionStatusView> for ExecutionOutcomeStatus {
+    fn from(status: ExecutionStatusView) -> Self {
+        match status {
+            ExecutionStatusView::Unknown => ExecutionOutcomeStatus::Unknown,
+            ExecutionStatusView::Failure(_) => ExecutionOutcomeStatus::Failure,
+            ExecutionStatusView::SuccessValue(_) => ExecutionOutcomeStatus::SuccessValue,
+            ExecutionStatusView::SuccessReceiptId(_) => ExecutionOutcomeStatus::SuccessReceiptId,
+        }
+    }
+}
+
+#[derive(Display, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum ExecutionOutcomeStatus {
+    Unknown,
+    Failure,
+    SuccessValue,
+    SuccessReceiptId,
 }

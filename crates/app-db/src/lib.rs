@@ -22,7 +22,6 @@ pub use models::{
     execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
     receipts::{DataReceipt, Receipt},
     transaction_actions::TransactionAction,
-    transactions::Transaction,
     ExecutionOutcomeStatus,
 };
 
@@ -65,17 +64,6 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         diesel::insert_or_ignore_into(data_receipts::table)
             .values(data_receipts)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
-    }
-
-    pub fn insert_transactions(&mut self, transactions: &Vec<Transaction>) -> Result<()> {
-        use schema::transactions;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_or_ignore_into(transactions::table)
-            .values(transactions)
             .execute(&mut conn)
             .unwrap();
         Ok(())

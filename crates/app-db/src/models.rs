@@ -1,7 +1,6 @@
 pub(crate) mod execution_outcomes;
 pub(crate) mod receipts;
 pub(crate) mod transaction_actions;
-pub(crate) mod transactions;
 
 use near_lake_framework::near_indexer_primitives::views::ExecutionStatusView;
 

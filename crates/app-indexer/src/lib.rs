@@ -15,8 +15,7 @@ use near_lake_framework::{
 use parking_lot::RwLock;
 use qlytics_core::Result;
 use qlytics_db::{
-    DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
-    TransactionAction,
+    DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, TransactionAction,
 };
 use qlytics_graphql::{Block, BlockData, Chunk};
 use rayon::prelude::*;
@@ -49,7 +48,6 @@ pub fn start_indexing(_db: DbConn) -> impl Stream<Item = Result<BlockData>> {
     let receipt_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
     let data_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
 
-    let transactions = Arc::new(RwLock::new(vec![]));
     let transaction_actions = Arc::new(RwLock::new(vec![]));
     let receipts = Arc::new(RwLock::new(vec![]));
     let data_receipts = Arc::new(RwLock::new(vec![]));
@@ -67,7 +65,6 @@ pub fn start_indexing(_db: DbConn) -> impl Stream<Item = Result<BlockData>> {
                 eta.clone(),
                 receipt_id_to_tx_hash.clone(),
                 data_id_to_tx_hash.clone(),
-                transactions.clone(),
                 transaction_actions.clone(),
                 receipts.clone(),
                 data_receipts.clone(),
@@ -95,7 +92,6 @@ async fn handle_streamer_message(
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
-    transactions: Arc<RwLock<Vec<Transaction>>>,
     transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
     data_receipts: Arc<RwLock<Vec<DataReceipt>>>,
@@ -168,7 +164,7 @@ async fn handle_streamer_message(
             });
         });
 
-    let chunks = msg
+    let (chunks, transactions): (Vec<_>, Vec<_>) = msg
         .shards
         .par_iter()
         .filter_map(|shard| {
@@ -197,20 +193,23 @@ async fn handle_streamer_message(
                 &misses,
             );
 
-            handle_transactions(
+            let transactions = handle_transactions(
                 chunk_view,
                 chunk_hash,
                 block_hash,
                 timestamp,
-                &transactions,
                 &transaction_actions,
             );
 
-            Some(chunk)
+            Some((chunk, transactions))
         })
-        .collect();
+        .unzip();
 
     handle_shard_receipts(&msg, &receipt_id_to_tx_hash);
 
-    Ok(BlockData { block, chunks })
+    Ok(BlockData {
+        block,
+        chunks,
+        transactions: transactions.into_iter().flatten().collect(),
+    })
 }
