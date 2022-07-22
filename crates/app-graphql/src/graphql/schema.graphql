@@ -43,10 +43,18 @@ input Transaction {
   tokens_burnt: String!
 }
 
+input TransactionAction {
+  hash: String!
+  transaction_index: Int!
+  action_kind: String!
+  args: String!
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
   transactions: [Transaction!]!
+  transaction_actions: [TransactionAction!]!
 }
 
 type Mutation {

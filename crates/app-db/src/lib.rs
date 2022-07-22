@@ -2,15 +2,11 @@
 extern crate diesel;
 
 #[macro_use]
-extern crate serde_json;
-
-#[macro_use]
 extern crate strum;
 
 mod error;
 mod models;
 mod schema;
-pub(crate) mod util;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type DbPool = Pool<ConnectionManager<SqliteConnection>>;
@@ -21,7 +17,6 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 pub use models::{
     execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
     receipts::{DataReceipt, Receipt},
-    transaction_actions::TransactionAction,
     ExecutionOutcomeStatus,
 };
 
@@ -64,20 +59,6 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         diesel::insert_or_ignore_into(data_receipts::table)
             .values(data_receipts)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
-    }
-
-    pub fn insert_transaction_actions(
-        &mut self,
-        transaction_actions: &Vec<TransactionAction>,
-    ) -> Result<()> {
-        use schema::transaction_actions;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_or_ignore_into(transaction_actions::table)
-            .values(transaction_actions)
             .execute(&mut conn)
             .unwrap();
         Ok(())

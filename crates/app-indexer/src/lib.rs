@@ -7,6 +7,7 @@ mod transaction;
 use async_stream::try_stream;
 use chrono::NaiveDateTime;
 use futures_core::stream::Stream;
+use itertools::Itertools;
 use near_jsonrpc_client::JsonRpcClient;
 use near_lake_framework::{
     near_indexer_primitives::{views::ReceiptEnumView, CryptoHash, StreamerMessage},
@@ -14,9 +15,7 @@ use near_lake_framework::{
 };
 use parking_lot::RwLock;
 use qlytics_core::Result;
-use qlytics_db::{
-    DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, TransactionAction,
-};
+use qlytics_db::{DataReceipt, DbConn, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
 use qlytics_graphql::{Block, BlockData, Chunk};
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
@@ -48,7 +47,6 @@ pub fn start_indexing(_db: DbConn) -> impl Stream<Item = Result<BlockData>> {
     let receipt_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
     let data_id_to_tx_hash = Arc::new(RwLock::new(HashMap::new()));
 
-    let transaction_actions = Arc::new(RwLock::new(vec![]));
     let receipts = Arc::new(RwLock::new(vec![]));
     let data_receipts = Arc::new(RwLock::new(vec![]));
     let execution_outcomes = Arc::new(RwLock::new(vec![]));
@@ -65,7 +63,6 @@ pub fn start_indexing(_db: DbConn) -> impl Stream<Item = Result<BlockData>> {
                 eta.clone(),
                 receipt_id_to_tx_hash.clone(),
                 data_id_to_tx_hash.clone(),
-                transaction_actions.clone(),
                 receipts.clone(),
                 data_receipts.clone(),
                 execution_outcomes.clone(),
@@ -92,7 +89,6 @@ async fn handle_streamer_message(
     eta: Arc<RwLock<VecDeque<(Duration, u64)>>>,
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
-    transaction_actions: Arc<RwLock<Vec<TransactionAction>>>,
     receipts: Arc<RwLock<Vec<Receipt>>>,
     data_receipts: Arc<RwLock<Vec<DataReceipt>>>,
     execution_outcomes: Arc<RwLock<Vec<ExecutionOutcome>>>,
@@ -164,7 +160,7 @@ async fn handle_streamer_message(
             });
         });
 
-    let (chunks, transactions): (Vec<_>, Vec<_>) = msg
+    let (chunks, transactions, transaction_actions): (Vec<_>, Vec<_>, Vec<_>) = msg
         .shards
         .par_iter()
         .filter_map(|shard| {
@@ -193,17 +189,14 @@ async fn handle_streamer_message(
                 &misses,
             );
 
-            let transactions = handle_transactions(
-                chunk_view,
-                chunk_hash,
-                block_hash,
-                timestamp,
-                &transaction_actions,
-            );
+            let (transactions, transaction_actions) =
+                handle_transactions(chunk_view, chunk_hash, block_hash, timestamp);
 
-            Some((chunk, transactions))
+            Some((chunk, transactions, transaction_actions))
         })
-        .unzip();
+        .collect::<Vec<_>>()
+        .into_iter()
+        .multiunzip();
 
     handle_shard_receipts(&msg, &receipt_id_to_tx_hash);
 
@@ -211,5 +204,6 @@ async fn handle_streamer_message(
         block,
         chunks,
         transactions: transactions.into_iter().flatten().collect(),
+        transaction_actions: transaction_actions.into_iter().flatten().collect(),
     })
 }

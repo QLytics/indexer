@@ -2205,10 +2205,13 @@ dependencies = [
 name = "qlytics-graphql"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "chrono",
  "graphql_client",
+ "hex",
  "near-lake-framework",
  "serde",
+ "serde_json",
  "strum",
  "strum_macros",
 ]
