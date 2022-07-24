@@ -16,7 +16,6 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub use models::{
     execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt},
-    receipts::{DataReceipt, Receipt},
     ExecutionOutcomeStatus,
 };
 
@@ -40,28 +39,6 @@ impl Database {
         let mut conn = pool.get().unwrap();
         conn.run_pending_migrations(MIGRATIONS).unwrap();
         Self { pool }
-    }
-
-    pub fn insert_receipts(&mut self, receipts: &Vec<Receipt>) -> Result<()> {
-        use schema::receipts;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_or_ignore_into(receipts::table)
-            .values(receipts)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
-    }
-
-    pub fn insert_data_receipts(&mut self, data_receipts: &Vec<DataReceipt>) -> Result<()> {
-        use schema::data_receipts;
-
-        let mut conn = self.pool.get().unwrap();
-        diesel::insert_or_ignore_into(data_receipts::table)
-            .values(data_receipts)
-            .execute(&mut conn)
-            .unwrap();
-        Ok(())
     }
 
     pub fn insert_execution_outcomes(

@@ -3,7 +3,8 @@ use near_lake_framework::near_indexer_primitives::{
     views::ReceiptEnumView, CryptoHash, IndexerChunkView, IndexerShard, StreamerMessage,
 };
 use parking_lot::RwLock;
-use qlytics_db::{DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
+use qlytics_db::{ExecutionOutcome, ExecutionOutcomeReceipt};
+use qlytics_graphql::{DataReceipt, Receipt};
 use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 
@@ -14,19 +15,17 @@ pub(crate) fn handle_chunk_receipts(
     block_hash: CryptoHash,
     chunk_hash: CryptoHash,
     timestamp: NaiveDateTime,
-    receipts: &Arc<RwLock<Vec<Receipt>>>,
-    data_receipts: &Arc<RwLock<Vec<DataReceipt>>>,
     execution_outcomes: &Arc<RwLock<Vec<ExecutionOutcome>>>,
     execution_outcome_receipts: &Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
     receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     misses: &Arc<RwLock<u32>>,
-) {
-    chunk
+) -> (Vec<Receipt>, Vec<DataReceipt>) {
+    let (receipts, data_receipts): (Vec<_>, Vec<_>) = chunk
         .receipts
         .par_iter()
         .enumerate()
-        .for_each(|(chunk_index, receipt_view)| {
+        .map(|(chunk_index, receipt_view)| {
             if let Some(outcome) = shard
                 .receipt_execution_outcomes
                 .iter()
@@ -60,26 +59,30 @@ pub(crate) fn handle_chunk_receipts(
                     });
             }
 
-            if let ReceiptEnumView::Data { data_id, data } = &receipt_view.receipt {
-                let data_receipt =
-                    DataReceipt::new(*data_id, receipt_view.receipt_id, data.clone());
-                data_receipts.write().push(data_receipt);
-            }
+            let data_receipt =
+                if let ReceiptEnumView::Data { data_id, data } = &receipt_view.receipt {
+                    Some(DataReceipt::new(
+                        *data_id,
+                        receipt_view.receipt_id,
+                        data.clone(),
+                    ))
+                } else {
+                    None
+                };
 
             let tx_hash = receipt_id_to_tx_hash
                 .write()
                 .get(&receipt_view.receipt_id)
                 .cloned();
-            if let Some((tx_hash, _)) = tx_hash {
+            let receipt = if let Some((tx_hash, _)) = tx_hash {
                 let receipt = Receipt::new(
                     receipt_view,
                     block_hash,
                     chunk_hash,
-                    chunk_index as i32,
-                    timestamp,
+                    chunk_index as i64,
+                    timestamp.timestamp().to_string(),
                     tx_hash,
                 );
-                receipts.write().push(receipt);
 
                 if let ReceiptEnumView::Action {
                     output_data_receivers,
@@ -90,11 +93,19 @@ pub(crate) fn handle_chunk_receipts(
                         data_id_to_tx_hash.write().insert(receiver.data_id, tx_hash);
                     });
                 }
+                Some(receipt)
             } else {
                 let mut misses = misses.write();
                 *misses += 1;
-            }
-        });
+                None
+            };
+            (receipt, data_receipt)
+        })
+        .unzip();
+    (
+        receipts.into_iter().flatten().collect(),
+        data_receipts.into_iter().flatten().collect(),
+    )
 }
 
 pub(crate) fn handle_shard_receipts(

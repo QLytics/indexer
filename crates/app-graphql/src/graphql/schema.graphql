@@ -50,11 +50,31 @@ input TransactionAction {
   args: String!
 }
 
+input Receipt {
+  receipt_id: String!
+  block_hash: String!
+  chunk_hash: String!
+  chunk_index: Int!
+  timestamp: String!
+  predecessor_id: String!
+  receiver_id: String!
+  receipt_kind: String!
+  transaction_hash: String!
+}
+
+input DataReceipt {
+  data_id: String!
+  receipt_id: String!
+  data_base64: String
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
   transactions: [Transaction!]!
   transaction_actions: [TransactionAction!]!
+  receipts: [Receipt!]!
+  data_receipts: [DataReceipt!]!
 }
 
 type Mutation {

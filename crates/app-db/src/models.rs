@@ -1,5 +1,4 @@
 pub(crate) mod execution_outcomes;
-pub(crate) mod receipts;
 
 use near_lake_framework::near_indexer_primitives::views::ExecutionStatusView;
 

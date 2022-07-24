@@ -7,7 +7,8 @@ use chrono::NaiveDateTime;
 use graphql_client::GraphQLQuery;
 use near_lake_framework::near_indexer_primitives::{
     views::{
-        ActionView, BlockView, ExecutionOutcomeView, ExecutionStatusView, SignedTransactionView,
+        ActionView, BlockView, ExecutionOutcomeView, ExecutionStatusView, ReceiptEnumView,
+        ReceiptView, SignedTransactionView,
     },
     CryptoHash, IndexerChunkView,
 };
@@ -22,7 +23,9 @@ use util::escape_json;
 )]
 pub struct AddBlockData;
 
-pub use add_block_data::{Block, BlockData, Chunk, Transaction, TransactionAction};
+pub use add_block_data::{
+    Block, BlockData, Chunk, DataReceipt, Receipt, Transaction, TransactionAction,
+};
 
 impl add_block_data::Block {
     pub fn new(block_view: &BlockView, timestamp: NaiveDateTime) -> Self {
@@ -190,4 +193,47 @@ pub enum ActionKind {
     AddKey,
     DeleteKey,
     DeleteAccount,
+}
+
+impl add_block_data::Receipt {
+    pub fn new(
+        receipt: &ReceiptView,
+        block_hash: CryptoHash,
+        chunk_hash: CryptoHash,
+        chunk_index: i64,
+        timestamp: String,
+        transaction_hash: CryptoHash,
+    ) -> Self {
+        Self {
+            receipt_id: receipt.receipt_id.to_string(),
+            block_hash: block_hash.to_string(),
+            chunk_hash: chunk_hash.to_string(),
+            chunk_index,
+            timestamp,
+            predecessor_id: receipt.predecessor_id.to_string(),
+            receiver_id: receipt.receiver_id.to_string(),
+            receipt_kind: match receipt.receipt {
+                ReceiptEnumView::Action { .. } => ReceiptKind::Action.to_string(),
+                ReceiptEnumView::Data { .. } => ReceiptKind::Data.to_string(),
+            },
+            transaction_hash: transaction_hash.to_string(),
+        }
+    }
+}
+
+#[derive(Display, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum ReceiptKind {
+    Action,
+    Data,
+}
+
+impl add_block_data::DataReceipt {
+    pub fn new(data_id: CryptoHash, receipt_id: CryptoHash, data: Option<Vec<u8>>) -> Self {
+        Self {
+            data_id: data_id.to_string(),
+            receipt_id: receipt_id.to_string(),
+            data_base64: data.map(base64::encode),
+        }
+    }
 }
