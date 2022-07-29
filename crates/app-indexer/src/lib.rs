@@ -15,7 +15,6 @@ use near_lake_framework::{
 };
 use parking_lot::RwLock;
 use qlytics_core::Result;
-use qlytics_db::DbConn;
 use qlytics_graphql::{Block, BlockData, Chunk};
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
@@ -27,7 +26,7 @@ use std::{
 };
 use transaction::handle_transactions;
 
-pub fn start_indexing(_db: DbConn) -> impl Stream<Item = Result<BlockData>> {
+pub fn start_indexing() -> impl Stream<Item = Result<BlockData>> {
     let config = LakeConfigBuilder::default()
         .mainnet()
         .start_block_height(

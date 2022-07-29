@@ -5,6 +5,5 @@ edition = "2021"
 
 [dependencies]
 near-jsonrpc-client = "0.4.0-beta.0"
-qlytics-graphql = { path = "../app-graphql" }
 reqwest = "0.11"
 thiserror = "1"
