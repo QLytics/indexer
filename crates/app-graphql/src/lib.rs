@@ -24,7 +24,8 @@ use util::escape_json;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    Block, BlockData, Chunk, DataReceipt, Receipt, Transaction, TransactionAction,
+    Block, BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
+    Transaction, TransactionAction,
 };
 
 impl add_block_data::Block {
@@ -234,6 +235,43 @@ impl add_block_data::DataReceipt {
             data_id: data_id.to_string(),
             receipt_id: receipt_id.to_string(),
             data_base64: data.map(base64::encode),
+        }
+    }
+}
+
+impl add_block_data::ExecutionOutcome {
+    pub fn new(
+        receipt: &ReceiptView,
+        block_hash: CryptoHash,
+        chunk_index: i64,
+        timestamp: String,
+        outcome: &ExecutionOutcomeView,
+        shard_id: u64,
+    ) -> Self {
+        Self {
+            receipt_id: receipt.receipt_id.to_string(),
+            block_hash: block_hash.to_string(),
+            chunk_index,
+            timestamp,
+            gas_burnt: outcome.gas_burnt.to_string(),
+            tokens_burnt: outcome.tokens_burnt.to_string(),
+            account_id: outcome.executor_id.to_string(),
+            status: ExecutionOutcomeStatus::from(outcome.status.clone()).to_string(),
+            shard: shard_id.to_string(),
+        }
+    }
+}
+
+impl add_block_data::ExecutionOutcomeReceipt {
+    pub fn new(
+        receipt_id: CryptoHash,
+        index_in_execution_outcome: i64,
+        produced_receipt_id: CryptoHash,
+    ) -> Self {
+        Self {
+            receipt_id: receipt_id.to_string(),
+            index_in_execution_outcome,
+            produced_receipt_id: produced_receipt_id.to_string(),
         }
     }
 }

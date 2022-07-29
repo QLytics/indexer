@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
+use itertools::Itertools;
 use near_lake_framework::near_indexer_primitives::{
     views::ReceiptEnumView, CryptoHash, IndexerChunkView, IndexerShard, StreamerMessage,
 };
 use parking_lot::RwLock;
-use qlytics_db::{ExecutionOutcome, ExecutionOutcomeReceipt};
-use qlytics_graphql::{DataReceipt, Receipt};
+use qlytics_graphql::{DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
 use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 
@@ -15,49 +15,57 @@ pub(crate) fn handle_chunk_receipts(
     block_hash: CryptoHash,
     chunk_hash: CryptoHash,
     timestamp: NaiveDateTime,
-    execution_outcomes: &Arc<RwLock<Vec<ExecutionOutcome>>>,
-    execution_outcome_receipts: &Arc<RwLock<Vec<ExecutionOutcomeReceipt>>>,
     receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     misses: &Arc<RwLock<u32>>,
-) -> (Vec<Receipt>, Vec<DataReceipt>) {
-    let (receipts, data_receipts): (Vec<_>, Vec<_>) = chunk
+) -> (
+    Vec<Receipt>,
+    Vec<DataReceipt>,
+    Vec<ExecutionOutcome>,
+    Vec<ExecutionOutcomeReceipt>,
+) {
+    let (receipts, data_receipts, execution_outcome, execution_outcome_receipts): (
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+    ) = chunk
         .receipts
         .par_iter()
         .enumerate()
         .map(|(chunk_index, receipt_view)| {
-            if let Some(outcome) = shard
+            let (execution_outcome, execution_outcome_receipts) = if let Some(outcome) = shard
                 .receipt_execution_outcomes
                 .iter()
                 .find(|r| r.execution_outcome.id == receipt_view.receipt_id)
             {
-                let execution_outcome = ExecutionOutcome::new(
+                let execution_outcome = Some(ExecutionOutcome::new(
                     receipt_view,
                     block_hash,
-                    chunk_index as i32,
-                    timestamp,
+                    chunk_index as i64,
+                    timestamp.timestamp().to_string(),
                     &outcome.execution_outcome.outcome,
                     shard.shard_id,
-                );
-                execution_outcomes.write().push(execution_outcome);
+                ));
 
-                outcome
+                let execution_outcome_receipts = outcome
                     .execution_outcome
                     .outcome
                     .receipt_ids
                     .iter()
                     .enumerate()
-                    .for_each(|(index, receipt_id)| {
-                        let execution_outcome_receipt = ExecutionOutcomeReceipt::new(
+                    .map(|(index, receipt_id)| {
+                        ExecutionOutcomeReceipt::new(
                             outcome.execution_outcome.id,
-                            index as i32,
+                            index as i64,
                             *receipt_id,
-                        );
-                        execution_outcome_receipts
-                            .write()
-                            .push(execution_outcome_receipt);
-                    });
-            }
+                        )
+                    })
+                    .collect();
+                (execution_outcome, execution_outcome_receipts)
+            } else {
+                (None, vec![])
+            };
 
             let data_receipt =
                 if let ReceiptEnumView::Data { data_id, data } = &receipt_view.receipt {
@@ -99,12 +107,21 @@ pub(crate) fn handle_chunk_receipts(
                 *misses += 1;
                 None
             };
-            (receipt, data_receipt)
+            (
+                receipt,
+                data_receipt,
+                execution_outcome,
+                execution_outcome_receipts,
+            )
         })
-        .unzip();
+        .collect::<Vec<_>>()
+        .into_iter()
+        .multiunzip();
     (
         receipts.into_iter().flatten().collect(),
         data_receipts.into_iter().flatten().collect(),
+        execution_outcome.into_iter().flatten().collect(),
+        execution_outcome_receipts.into_iter().flatten().collect(),
     )
 }
 

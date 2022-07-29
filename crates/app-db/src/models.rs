@@ -1,5 +1,3 @@
-pub(crate) mod execution_outcomes;
-
 use near_lake_framework::near_indexer_primitives::views::ExecutionStatusView;
 
 impl From<ExecutionStatusView> for ExecutionOutcomeStatus {

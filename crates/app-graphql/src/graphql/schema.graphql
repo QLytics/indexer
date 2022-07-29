@@ -68,6 +68,24 @@ input DataReceipt {
   data_base64: String
 }
 
+input ExecutionOutcome {
+  receipt_id: String!
+  block_hash: String!
+  chunk_index: Int!
+  timestamp: String!
+  gas_burnt: String!
+  tokens_burnt: String!
+  account_id: String!
+  status: String!
+  shard: String!
+}
+
+input ExecutionOutcomeReceipt {
+  receipt_id: String!
+  index_in_execution_outcome: Int!
+  produced_receipt_id: String!
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
@@ -75,6 +93,8 @@ input BlockData {
   transaction_actions: [TransactionAction!]!
   receipts: [Receipt!]!
   data_receipts: [DataReceipt!]!
+  execution_outcomes: [ExecutionOutcome!]!
+  execution_outcome_receipts: [ExecutionOutcomeReceipt!]!
 }
 
 type Mutation {
