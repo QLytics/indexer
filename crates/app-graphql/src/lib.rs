@@ -5,7 +5,9 @@ mod util;
 
 use chrono::NaiveDateTime;
 use graphql_client::GraphQLQuery;
+use near_crypto::PublicKey;
 use near_lake_framework::near_indexer_primitives::{
+    types::AccountId,
     views::{
         ActionView, BlockView, ExecutionOutcomeView, ExecutionStatusView, ReceiptEnumView,
         ReceiptView, SignedTransactionView,
@@ -24,8 +26,8 @@ use util::escape_json;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    Block, BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
-    Transaction, TransactionAction,
+    ActionReceipt, Block, BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt,
+    Receipt, Transaction, TransactionAction,
 };
 
 impl add_block_data::Block {
@@ -235,6 +237,22 @@ impl add_block_data::DataReceipt {
             data_id: data_id.to_string(),
             receipt_id: receipt_id.to_string(),
             data_base64: data.map(base64::encode),
+        }
+    }
+}
+
+impl add_block_data::ActionReceipt {
+    pub fn new(
+        receipt_id: CryptoHash,
+        signer_account_id: &AccountId,
+        signer_public_key: &PublicKey,
+        gas_price: String,
+    ) -> Self {
+        Self {
+            receipt_id: receipt_id.to_string(),
+            signer_account_id: signer_account_id.to_string(),
+            signer_public_key: signer_public_key.to_string(),
+            gas_price,
         }
     }
 }

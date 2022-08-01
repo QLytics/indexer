@@ -2072,6 +2072,7 @@ dependencies = [
  "chrono",
  "graphql_client",
  "hex",
+ "near-crypto",
  "near-lake-framework",
  "serde",
  "serde_json",

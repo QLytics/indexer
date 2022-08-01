@@ -152,9 +152,19 @@ async fn handle_streamer_message(
         transaction_actions,
         receipts,
         data_receipts,
+        action_receipts,
         execution_outcomes,
         execution_outcome_receipts,
-    ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) = msg
+    ): (
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+    ) = msg
         .shards
         .par_iter()
         .filter_map(|shard| {
@@ -168,17 +178,22 @@ async fn handle_streamer_message(
 
             let chunk_hash = chunk_view.header.chunk_hash;
 
-            let (receipts, data_receipts, execution_outcomes, execution_outcome_receipts) =
-                handle_chunk_receipts(
-                    shard,
-                    chunk_view,
-                    block_hash,
-                    chunk_hash,
-                    timestamp,
-                    &receipt_id_to_tx_hash,
-                    &data_id_to_tx_hash,
-                    &misses,
-                );
+            let (
+                receipts,
+                data_receipts,
+                action_receipts,
+                execution_outcomes,
+                execution_outcome_receipts,
+            ) = handle_chunk_receipts(
+                shard,
+                chunk_view,
+                block_hash,
+                chunk_hash,
+                timestamp,
+                &receipt_id_to_tx_hash,
+                &data_id_to_tx_hash,
+                &misses,
+            );
 
             let (transactions, transaction_actions) =
                 handle_transactions(chunk_view, chunk_hash, block_hash, timestamp);
@@ -189,6 +204,7 @@ async fn handle_streamer_message(
                 transaction_actions,
                 receipts,
                 data_receipts,
+                action_receipts,
                 execution_outcomes,
                 execution_outcome_receipts,
             ))
@@ -206,6 +222,7 @@ async fn handle_streamer_message(
         transaction_actions: transaction_actions.into_iter().flatten().collect(),
         receipts: receipts.into_iter().flatten().collect(),
         data_receipts: data_receipts.into_iter().flatten().collect(),
+        action_receipts: action_receipts.into_iter().flatten().collect(),
         execution_outcomes: execution_outcomes.into_iter().flatten().collect(),
         execution_outcome_receipts: execution_outcome_receipts.into_iter().flatten().collect(),
     })

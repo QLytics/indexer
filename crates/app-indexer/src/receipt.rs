@@ -4,11 +4,13 @@ use near_lake_framework::near_indexer_primitives::{
     views::ReceiptEnumView, CryptoHash, IndexerChunkView, IndexerShard, StreamerMessage,
 };
 use parking_lot::RwLock;
-use qlytics_graphql::{DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt};
+use qlytics_graphql::{
+    ActionReceipt, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
+};
 use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub(crate) fn handle_chunk_receipts(
     shard: &IndexerShard,
     chunk: &IndexerChunkView,
@@ -21,10 +23,12 @@ pub(crate) fn handle_chunk_receipts(
 ) -> (
     Vec<Receipt>,
     Vec<DataReceipt>,
+    Vec<ActionReceipt>,
     Vec<ExecutionOutcome>,
     Vec<ExecutionOutcomeReceipt>,
 ) {
-    let (receipts, data_receipts, execution_outcome, execution_outcome_receipts): (
+    let (receipts, data_receipts, action_receipts, execution_outcome, execution_outcome_receipts): (
+        Vec<_>,
         Vec<_>,
         Vec<_>,
         Vec<_>,
@@ -77,6 +81,22 @@ pub(crate) fn handle_chunk_receipts(
                 } else {
                     None
                 };
+            let action_receipt = if let ReceiptEnumView::Action {
+                signer_id,
+                signer_public_key,
+                gas_price,
+                ..
+            } = &receipt_view.receipt
+            {
+                Some(ActionReceipt::new(
+                    receipt_view.receipt_id,
+                    signer_id,
+                    signer_public_key,
+                    gas_price.to_string(),
+                ))
+            } else {
+                None
+            };
 
             let tx_hash = receipt_id_to_tx_hash
                 .write()
@@ -110,6 +130,7 @@ pub(crate) fn handle_chunk_receipts(
             (
                 receipt,
                 data_receipt,
+                action_receipt,
                 execution_outcome,
                 execution_outcome_receipts,
             )
@@ -120,6 +141,7 @@ pub(crate) fn handle_chunk_receipts(
     (
         receipts.into_iter().flatten().collect(),
         data_receipts.into_iter().flatten().collect(),
+        action_receipts.into_iter().flatten().collect(),
         execution_outcome.into_iter().flatten().collect(),
         execution_outcome_receipts.into_iter().flatten().collect(),
     )
