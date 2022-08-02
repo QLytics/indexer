@@ -26,8 +26,9 @@ use util::get_action_type_and_value;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    ActionReceipt, ActionReceiptAction, Block, BlockData, Chunk, DataReceipt, ExecutionOutcome,
-    ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
+    ActionReceipt, ActionReceiptAction, ActionReceiptInputData, Block, BlockData, Chunk,
+    DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
+    TransactionAction,
 };
 
 impl add_block_data::Block {
@@ -210,6 +211,15 @@ impl add_block_data::ActionReceiptAction {
             predecessor_id: receipt.predecessor_id.to_string(),
             receiver_id: receipt.receiver_id.to_string(),
             timestamp,
+        }
+    }
+}
+
+impl add_block_data::ActionReceiptInputData {
+    pub fn new(data_id: CryptoHash, receipt_id: CryptoHash) -> Self {
+        Self {
+            data_id: data_id.to_string(),
+            receipt_id: receipt_id.to_string(),
         }
     }
 }

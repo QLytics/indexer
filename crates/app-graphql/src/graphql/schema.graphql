@@ -27,7 +27,7 @@ input Chunk {
 }
 
 input Transaction {
-  hash: String!
+  hash: ID!
   block_hash: String!
   chunk_hash: String!
   chunk_index: Int!
@@ -44,14 +44,14 @@ input Transaction {
 }
 
 input TransactionAction {
-  hash: String!
+  hash: ID!
   transaction_index: Int!
   action_kind: String!
   args: String!
 }
 
 input Receipt {
-  receipt_id: String!
+  receipt_id: ID!
   block_hash: String!
   chunk_hash: String!
   chunk_index: Int!
@@ -63,20 +63,20 @@ input Receipt {
 }
 
 input DataReceipt {
-  data_id: String!
+  data_id: ID!
   receipt_id: String!
   data_base64: String
 }
 
 input ActionReceipt {
-  receipt_id: String!
+  receipt_id: ID!
   signer_account_id: String!
   signer_public_key: String!
   gas_price: String!
 }
 
 input ActionReceiptAction {
-  receipt_id: String!
+  receipt_id: ID!
   index_in_action_receipt: Int!
   action_kind: String!
   args: String!
@@ -85,8 +85,13 @@ input ActionReceiptAction {
   timestamp: String!
 }
 
-input ExecutionOutcome {
+input ActionReceiptInputData {
+  data_id: ID!
   receipt_id: String!
+}
+
+input ExecutionOutcome {
+  receipt_id: ID!
   block_hash: String!
   chunk_index: Int!
   timestamp: String!
@@ -98,7 +103,7 @@ input ExecutionOutcome {
 }
 
 input ExecutionOutcomeReceipt {
-  receipt_id: String!
+  receipt_id: ID!
   index_in_execution_outcome: Int!
   produced_receipt_id: String!
 }
@@ -112,6 +117,7 @@ input BlockData {
   data_receipts: [DataReceipt!]!
   action_receipts: [ActionReceipt!]!
   action_receipt_actions: [ActionReceiptAction!]!
+  action_receipt_input_datas: [ActionReceiptInputData!]!
   execution_outcomes: [ExecutionOutcome!]!
   execution_outcome_receipts: [ExecutionOutcomeReceipt!]!
 }
