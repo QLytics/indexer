@@ -15,7 +15,7 @@ use near_lake_framework::near_indexer_primitives::{
     CryptoHash, IndexerChunkView,
 };
 use strum::{Display, EnumString};
-use util::escape_json;
+use util::get_action_type_and_value;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -26,8 +26,8 @@ use util::escape_json;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    ActionReceipt, Block, BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt,
-    Receipt, Transaction, TransactionAction,
+    ActionReceipt, ActionReceiptAction, Block, BlockData, Chunk, DataReceipt, ExecutionOutcome,
+    ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
 };
 
 impl add_block_data::Block {
@@ -112,70 +112,7 @@ impl add_block_data::TransactionAction {
         transaction_index: i64,
         action_view: &ActionView,
     ) -> Self {
-        let (action_kind, args) = match action_view {
-            ActionView::CreateAccount => (ActionKind::CreateAccount, json!({})),
-            ActionView::DeployContract { code } => (
-                ActionKind::DeployContract,
-                json!({
-                    "code_sha256":  hex::encode(
-                        base64::decode(code).expect("code expected to be encoded to base64")
-                    )
-                }),
-            ),
-            ActionView::FunctionCall {
-                method_name,
-                args,
-                gas,
-                deposit,
-            } => {
-                let mut arguments = json!({
-                    "method_name": method_name.escape_default().to_string(),
-                    "args_base64": args,
-                    "gas": gas,
-                    "deposit": deposit.to_string(),
-                });
-                if let Ok(decoded_args) = base64::decode(args) {
-                    if let Ok(mut args_json) = serde_json::from_slice(&decoded_args) {
-                        escape_json(&mut args_json);
-                        arguments["args_json"] = args_json;
-                    }
-                }
-                (ActionKind::FunctionCall, arguments)
-            }
-            ActionView::Transfer { deposit } => (
-                ActionKind::Transfer,
-                json!({ "deposit": deposit.to_string() }),
-            ),
-            ActionView::Stake { stake, public_key } => (
-                ActionKind::Stake,
-                json!({
-                    "stake": stake.to_string(),
-                    "public_key": public_key,
-                }),
-            ),
-            ActionView::AddKey {
-                public_key,
-                access_key,
-            } => (
-                ActionKind::AddKey,
-                json!({
-                    "public_key": public_key,
-                    "access_key": access_key,
-                }),
-            ),
-            ActionView::DeleteKey { public_key } => (
-                ActionKind::DeleteKey,
-                json!({
-                    "public_key": public_key,
-                }),
-            ),
-            ActionView::DeleteAccount { beneficiary_id } => (
-                ActionKind::DeleteAccount,
-                json!({
-                    "beneficiary_id": beneficiary_id,
-                }),
-            ),
-        };
+        let (action_kind, args) = get_action_type_and_value(action_view);
         Self {
             hash: transaction.hash.to_string(),
             transaction_index,
@@ -253,6 +190,26 @@ impl add_block_data::ActionReceipt {
             signer_account_id: signer_account_id.to_string(),
             signer_public_key: signer_public_key.to_string(),
             gas_price,
+        }
+    }
+}
+
+impl add_block_data::ActionReceiptAction {
+    pub fn new(
+        receipt: &ReceiptView,
+        index: i64,
+        action_view: &ActionView,
+        timestamp: String,
+    ) -> Self {
+        let (action_kind, args) = get_action_type_and_value(action_view);
+        Self {
+            receipt_id: receipt.receipt_id.to_string(),
+            index_in_action_receipt: index,
+            action_kind: action_kind.to_string(),
+            args: args.to_string(),
+            predecessor_id: receipt.predecessor_id.to_string(),
+            receiver_id: receipt.receiver_id.to_string(),
+            timestamp,
         }
     }
 }

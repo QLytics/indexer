@@ -75,6 +75,16 @@ input ActionReceipt {
   gas_price: String!
 }
 
+input ActionReceiptAction {
+  receipt_id: String!
+  index_in_action_receipt: Int!
+  action_kind: String!
+  args: String!
+  predecessor_id: String!
+  receiver_id: String!
+  timestamp: String!
+}
+
 input ExecutionOutcome {
   receipt_id: String!
   block_hash: String!
@@ -101,6 +111,7 @@ input BlockData {
   receipts: [Receipt!]!
   data_receipts: [DataReceipt!]!
   action_receipts: [ActionReceipt!]!
+  action_receipt_actions: [ActionReceiptAction!]!
   execution_outcomes: [ExecutionOutcome!]!
   execution_outcome_receipts: [ExecutionOutcomeReceipt!]!
 }
