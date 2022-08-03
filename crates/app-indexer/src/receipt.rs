@@ -5,8 +5,8 @@ use near_lake_framework::near_indexer_primitives::{
 };
 use parking_lot::RwLock;
 use qlytics_graphql::{
-    ActionReceipt, ActionReceiptAction, ActionReceiptInputData, DataReceipt, ExecutionOutcome,
-    ExecutionOutcomeReceipt, Receipt,
+    ActionReceipt, ActionReceiptAction, ActionReceiptInputData, ActionReceiptOutputData,
+    DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
 };
 use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
@@ -27,6 +27,7 @@ pub(crate) fn handle_chunk_receipts(
     Vec<ActionReceipt>,
     Vec<ActionReceiptAction>,
     Vec<ActionReceiptInputData>,
+    Vec<ActionReceiptOutputData>,
     Vec<ExecutionOutcome>,
     Vec<ExecutionOutcomeReceipt>,
 ) {
@@ -36,9 +37,19 @@ pub(crate) fn handle_chunk_receipts(
         action_receipts,
         action_receipt_actions,
         action_receipt_input_datas,
+        action_receipt_output_datas,
         execution_outcome,
         execution_outcome_receipts,
-    ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) = chunk
+    ): (
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+    ) = chunk
         .receipts
         .par_iter()
         .enumerate()
@@ -86,48 +97,61 @@ pub(crate) fn handle_chunk_receipts(
                 } else {
                     None
                 };
-            let (action_receipt, action_receipt_actions, action_receipt_input_datas) =
-                if let ReceiptEnumView::Action {
+            let (
+                action_receipt,
+                action_receipt_actions,
+                action_receipt_input_datas,
+                action_receipt_output_datas,
+            ) = if let ReceiptEnumView::Action {
+                signer_id,
+                signer_public_key,
+                gas_price,
+                actions,
+                input_data_ids,
+                output_data_receivers,
+            } = &receipt_view.receipt
+            {
+                let action_receipt = ActionReceipt::new(
+                    receipt_view.receipt_id,
                     signer_id,
                     signer_public_key,
-                    gas_price,
-                    actions,
-                    input_data_ids,
-                    ..
-                } = &receipt_view.receipt
-                {
-                    let action_receipt = ActionReceipt::new(
-                        receipt_view.receipt_id,
-                        signer_id,
-                        signer_public_key,
-                        gas_price.to_string(),
-                    );
-                    let action_receipt_actions: Vec<_> = actions
-                        .iter()
-                        .enumerate()
-                        .map(|(index, action_view)| {
-                            ActionReceiptAction::new(
-                                receipt_view,
-                                index as i64,
-                                action_view,
-                                timestamp.timestamp().to_string(),
-                            )
-                        })
-                        .collect();
-                    let action_receipt_input_datas: Vec<_> = input_data_ids
-                        .iter()
-                        .map(|data_id| {
-                            ActionReceiptInputData::new(receipt_view.receipt_id, *data_id)
-                        })
-                        .collect();
-                    (
-                        Some(action_receipt),
-                        Some(action_receipt_actions),
-                        Some(action_receipt_input_datas),
-                    )
-                } else {
-                    (None, None, None)
-                };
+                    gas_price.to_string(),
+                );
+                let action_receipt_actions: Vec<_> = actions
+                    .iter()
+                    .enumerate()
+                    .map(|(index, action_view)| {
+                        ActionReceiptAction::new(
+                            receipt_view,
+                            index as i64,
+                            action_view,
+                            timestamp.timestamp().to_string(),
+                        )
+                    })
+                    .collect();
+                let action_receipt_input_datas: Vec<_> = input_data_ids
+                    .iter()
+                    .map(|data_id| ActionReceiptInputData::new(receipt_view.receipt_id, *data_id))
+                    .collect();
+                let action_receipt_output_datas: Vec<_> = output_data_receivers
+                    .iter()
+                    .map(|data_receiver| {
+                        ActionReceiptOutputData::new(
+                            receipt_view.receipt_id,
+                            data_receiver.data_id,
+                            &data_receiver.receiver_id,
+                        )
+                    })
+                    .collect();
+                (
+                    Some(action_receipt),
+                    Some(action_receipt_actions),
+                    Some(action_receipt_input_datas),
+                    Some(action_receipt_output_datas),
+                )
+            } else {
+                (None, None, None, None)
+            };
 
             let tx_hash = receipt_id_to_tx_hash
                 .write()
@@ -164,6 +188,7 @@ pub(crate) fn handle_chunk_receipts(
                 action_receipt,
                 action_receipt_actions,
                 action_receipt_input_datas,
+                action_receipt_output_datas,
                 execution_outcome,
                 execution_outcome_receipts,
             )
@@ -181,6 +206,11 @@ pub(crate) fn handle_chunk_receipts(
             .flatten()
             .collect(),
         action_receipt_input_datas
+            .into_iter()
+            .flatten()
+            .flatten()
+            .collect(),
+        action_receipt_output_datas
             .into_iter()
             .flatten()
             .flatten()

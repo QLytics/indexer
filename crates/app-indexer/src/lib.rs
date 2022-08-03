@@ -155,9 +155,11 @@ async fn handle_streamer_message(
         action_receipts,
         action_receipt_actions,
         action_receipt_input_datas,
+        action_receipt_output_datas,
         execution_outcomes,
         execution_outcome_receipts,
     ): (
+        Vec<_>,
         Vec<_>,
         Vec<_>,
         Vec<_>,
@@ -188,6 +190,7 @@ async fn handle_streamer_message(
                 action_receipts,
                 action_receipt_actions,
                 action_receipt_input_datas,
+                action_receipt_output_datas,
                 execution_outcomes,
                 execution_outcome_receipts,
             ) = handle_chunk_receipts(
@@ -213,6 +216,7 @@ async fn handle_streamer_message(
                 action_receipts,
                 action_receipt_actions,
                 action_receipt_input_datas,
+                action_receipt_output_datas,
                 execution_outcomes,
                 execution_outcome_receipts,
             ))
@@ -233,6 +237,7 @@ async fn handle_streamer_message(
         action_receipts: action_receipts.into_iter().flatten().collect(),
         action_receipt_actions: action_receipt_actions.into_iter().flatten().collect(),
         action_receipt_input_datas: action_receipt_input_datas.into_iter().flatten().collect(),
+        action_receipt_output_datas: action_receipt_output_datas.into_iter().flatten().collect(),
         execution_outcomes: execution_outcomes.into_iter().flatten().collect(),
         execution_outcome_receipts: execution_outcome_receipts.into_iter().flatten().collect(),
     })
