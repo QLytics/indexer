@@ -121,6 +121,19 @@ input Account {
   last_update_block_height: String!
 }
 
+input AccountChange {
+  account_id: String!
+  timestamp: String!
+  block_hash: String!
+  transaction_hash: String
+  receipt_id: String
+  update_reason: String!
+  nonstaked_balance: String!
+  staked_balance: String!
+  storage_usage: String!
+  index_in_block: Int!
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
@@ -135,6 +148,7 @@ input BlockData {
   execution_outcomes: [ExecutionOutcome!]!
   execution_outcome_receipts: [ExecutionOutcomeReceipt!]!
   accounts: [Account!]!
+  account_changes: [AccountChange!]!
 }
 
 type Mutation {

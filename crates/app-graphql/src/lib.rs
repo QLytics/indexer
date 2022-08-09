@@ -9,8 +9,9 @@ use near_crypto::PublicKey;
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
     views::{
-        ActionView, BlockView, ExecutionOutcomeView, ExecutionStatusView, ReceiptEnumView,
-        ReceiptView, SignedTransactionView,
+        AccountView, ActionView, BlockView, ExecutionOutcomeView, ExecutionStatusView,
+        ReceiptEnumView, ReceiptView, SignedTransactionView, StateChangeCauseView,
+        StateChangeValueView, StateChangeWithCauseView,
     },
     CryptoHash, IndexerChunkView,
 };
@@ -26,9 +27,9 @@ use util::get_action_type_and_value;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    Account, ActionReceipt, ActionReceiptAction, ActionReceiptInputData, ActionReceiptOutputData,
-    Block, BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
-    Transaction, TransactionAction,
+    Account, AccountChange, ActionReceipt, ActionReceiptAction, ActionReceiptInputData,
+    ActionReceiptOutputData, Block, BlockData, Chunk, DataReceipt, ExecutionOutcome,
+    ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
 };
 
 impl add_block_data::Block {
@@ -282,6 +283,106 @@ impl add_block_data::Account {
             created_by_receipt_id: created_by_receipt_id.map(CryptoHash::to_string),
             deleted_by_receipt_id: None,
             last_update_block_height: block_height.to_string(),
+        }
+    }
+}
+
+impl add_block_data::AccountChange {
+    pub fn new(
+        state_change_with_cause: &StateChangeWithCauseView,
+        block_hash: CryptoHash,
+        timestamp: NaiveDateTime,
+        index_in_block: i64,
+    ) -> Option<Self> {
+        let StateChangeWithCauseView { cause, value } = state_change_with_cause;
+
+        let (account_id, account): (String, Option<&AccountView>) = match value {
+            StateChangeValueView::AccountUpdate {
+                account_id,
+                account,
+            } => (account_id.to_string(), Some(account)),
+            StateChangeValueView::AccountDeletion { account_id } => (account_id.to_string(), None),
+            _ => return None,
+        };
+
+        Some(Self {
+            account_id,
+            timestamp: timestamp.to_string(),
+            block_hash: block_hash.to_string(),
+            transaction_hash: if let StateChangeCauseView::TransactionProcessing { tx_hash } = cause
+            {
+                Some(tx_hash.to_string())
+            } else {
+                None
+            },
+            receipt_id: match cause {
+                StateChangeCauseView::ActionReceiptProcessingStarted { receipt_hash } => {
+                    Some(receipt_hash.to_string())
+                }
+                StateChangeCauseView::ActionReceiptGasReward { receipt_hash } => {
+                    Some(receipt_hash.to_string())
+                }
+                StateChangeCauseView::ReceiptProcessing { receipt_hash } => {
+                    Some(receipt_hash.to_string())
+                }
+                StateChangeCauseView::PostponedReceipt { receipt_hash } => {
+                    Some(receipt_hash.to_string())
+                }
+                _ => None,
+            },
+            update_reason: UpdateReason::from(cause).to_string(),
+            nonstaked_balance: if let Some(acc) = account {
+                acc.amount.to_string()
+            } else {
+                "0".to_string()
+            },
+            staked_balance: if let Some(acc) = account {
+                acc.locked.to_string()
+            } else {
+                "0".to_string()
+            },
+            storage_usage: if let Some(acc) = account {
+                acc.storage_usage.to_string()
+            } else {
+                "0".to_string()
+            },
+            index_in_block,
+        })
+    }
+}
+
+#[derive(Display, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum UpdateReason {
+    NotWritableToDisk,
+    InitialState,
+    TransactionProcessing,
+    ActionReceiptProcessingStarted,
+    ActionReceiptGasReward,
+    ReceiptProcessing,
+    PostponedReceipt,
+    UpdatedDelayedReceipts,
+    ValidatorAccountsUpdate,
+    Migration,
+    Resharding,
+}
+
+impl From<&StateChangeCauseView> for UpdateReason {
+    fn from(state_change_cause: &StateChangeCauseView) -> Self {
+        match state_change_cause {
+            StateChangeCauseView::NotWritableToDisk => Self::NotWritableToDisk,
+            StateChangeCauseView::InitialState => Self::InitialState,
+            StateChangeCauseView::TransactionProcessing { .. } => Self::TransactionProcessing,
+            StateChangeCauseView::ActionReceiptProcessingStarted { .. } => {
+                Self::ActionReceiptProcessingStarted
+            }
+            StateChangeCauseView::ActionReceiptGasReward { .. } => Self::ActionReceiptGasReward,
+            StateChangeCauseView::ReceiptProcessing { .. } => Self::ReceiptProcessing,
+            StateChangeCauseView::PostponedReceipt { .. } => Self::PostponedReceipt,
+            StateChangeCauseView::UpdatedDelayedReceipts => Self::UpdatedDelayedReceipts,
+            StateChangeCauseView::ValidatorAccountsUpdate => Self::ValidatorAccountsUpdate,
+            StateChangeCauseView::Migration => Self::Migration,
+            StateChangeCauseView::Resharding => Self::Resharding,
         }
     }
 }

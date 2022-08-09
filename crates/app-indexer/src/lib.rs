@@ -3,6 +3,7 @@
 mod account;
 mod log;
 mod receipt;
+mod state_change;
 mod transaction;
 
 use account::handle_accounts;
@@ -22,6 +23,7 @@ use qlytics_core::Result;
 use qlytics_graphql::{Block, BlockData, Chunk};
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
+use state_change::handle_state_changes;
 use std::{
     collections::{HashMap, VecDeque},
     env,
@@ -150,6 +152,7 @@ async fn handle_streamer_message(
             });
         });
 
+    #[allow(clippy::type_complexity)]
     let (
         chunks,
         transactions,
@@ -162,7 +165,9 @@ async fn handle_streamer_message(
         action_receipt_output_datas,
         execution_outcomes,
         execution_outcome_receipts,
+        account_changes,
     ): (
+        Vec<_>,
         Vec<_>,
         Vec<_>,
         Vec<_>,
@@ -211,6 +216,8 @@ async fn handle_streamer_message(
             let (transactions, transaction_actions) =
                 handle_transactions(chunk_view, chunk_hash, block_hash, timestamp);
 
+            let account_changes = handle_state_changes(&shard.state_changes, block_hash, timestamp);
+
             Some((
                 chunk,
                 transactions,
@@ -223,6 +230,7 @@ async fn handle_streamer_message(
                 action_receipt_output_datas,
                 execution_outcomes,
                 execution_outcome_receipts,
+                account_changes,
             ))
         })
         .collect::<Vec<_>>()
@@ -256,6 +264,7 @@ async fn handle_streamer_message(
             execution_outcomes: execution_outcomes.into_iter().flatten().collect(),
             execution_outcome_receipts: execution_outcome_receipts.into_iter().flatten().collect(),
             accounts,
+            account_changes: account_changes.into_iter().flatten().collect(),
         },
         account_ids,
     ))
