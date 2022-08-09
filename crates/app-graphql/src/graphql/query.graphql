@@ -3,3 +3,7 @@ mutation AddBlockData($block_data: [BlockData!]!) {
     hash
   }
 }
+
+mutation DeleteAccounts($account_ids: [String!]!) {
+  deleteAccounts(account_ids: $account_ids)
+}

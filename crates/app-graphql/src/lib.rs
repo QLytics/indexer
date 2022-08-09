@@ -26,9 +26,9 @@ use util::get_action_type_and_value;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    ActionReceipt, ActionReceiptAction, ActionReceiptInputData, ActionReceiptOutputData, Block,
-    BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt, Transaction,
-    TransactionAction,
+    Account, ActionReceipt, ActionReceiptAction, ActionReceiptInputData, ActionReceiptOutputData,
+    Block, BlockData, Chunk, DataReceipt, ExecutionOutcome, ExecutionOutcomeReceipt, Receipt,
+    Transaction, TransactionAction,
 };
 
 impl add_block_data::Block {
@@ -270,3 +270,26 @@ impl add_block_data::ExecutionOutcomeReceipt {
         }
     }
 }
+
+impl add_block_data::Account {
+    pub fn new(
+        account_id: &AccountId,
+        created_by_receipt_id: Option<&CryptoHash>,
+        block_height: u64,
+    ) -> Self {
+        Self {
+            account_id: account_id.to_string(),
+            created_by_receipt_id: created_by_receipt_id.map(CryptoHash::to_string),
+            deleted_by_receipt_id: None,
+            last_update_block_height: block_height.to_string(),
+        }
+    }
+}
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/schema.graphql",
+    query_path = "src/graphql/query.graphql",
+    response_derives = "Debug"
+)]
+pub struct DeleteAccounts;

@@ -1,16 +1,20 @@
 #![feature(drain_filter)]
 
+mod account;
 mod log;
 mod receipt;
 mod transaction;
 
+use account::handle_accounts;
 use async_stream::try_stream;
 use chrono::NaiveDateTime;
 use futures_core::stream::Stream;
 use itertools::Itertools;
 use near_jsonrpc_client::JsonRpcClient;
 use near_lake_framework::{
-    near_indexer_primitives::{views::ReceiptEnumView, CryptoHash, StreamerMessage},
+    near_indexer_primitives::{
+        types::AccountId, views::ReceiptEnumView, CryptoHash, StreamerMessage,
+    },
     LakeConfigBuilder,
 };
 use parking_lot::RwLock;
@@ -26,7 +30,7 @@ use std::{
 };
 use transaction::handle_transactions;
 
-pub fn start_indexing() -> impl Stream<Item = Result<BlockData>> {
+pub fn start_indexing() -> impl Stream<Item = Result<(BlockData, Vec<AccountId>)>> {
     let config = LakeConfigBuilder::default()
         .mainnet()
         .start_block_height(
@@ -80,7 +84,7 @@ async fn handle_streamer_message(
     receipt_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     misses: Arc<RwLock<u32>>,
-) -> Result<BlockData> {
+) -> Result<(BlockData, Vec<AccountId>)> {
     log::log(msg.block.header.height, &client, &time, &eta, &misses).await?;
 
     let block_hash = msg.block.header.hash;
@@ -227,18 +231,32 @@ async fn handle_streamer_message(
 
     handle_shard_receipts(&msg, &receipt_id_to_tx_hash);
 
-    Ok(BlockData {
-        block,
-        chunks,
-        transactions: transactions.into_iter().flatten().collect(),
-        transaction_actions: transaction_actions.into_iter().flatten().collect(),
-        receipts: receipts.into_iter().flatten().collect(),
-        data_receipts: data_receipts.into_iter().flatten().collect(),
-        action_receipts: action_receipts.into_iter().flatten().collect(),
-        action_receipt_actions: action_receipt_actions.into_iter().flatten().collect(),
-        action_receipt_input_datas: action_receipt_input_datas.into_iter().flatten().collect(),
-        action_receipt_output_datas: action_receipt_output_datas.into_iter().flatten().collect(),
-        execution_outcomes: execution_outcomes.into_iter().flatten().collect(),
-        execution_outcome_receipts: execution_outcome_receipts.into_iter().flatten().collect(),
-    })
+    let (accounts, account_ids) = msg
+        .shards
+        .par_iter()
+        .map(|shard| handle_accounts(&shard.receipt_execution_outcomes, msg.block.header.height))
+        .flatten()
+        .partition_map(|val| val);
+
+    Ok((
+        BlockData {
+            block,
+            chunks,
+            transactions: transactions.into_iter().flatten().collect(),
+            transaction_actions: transaction_actions.into_iter().flatten().collect(),
+            receipts: receipts.into_iter().flatten().collect(),
+            data_receipts: data_receipts.into_iter().flatten().collect(),
+            action_receipts: action_receipts.into_iter().flatten().collect(),
+            action_receipt_actions: action_receipt_actions.into_iter().flatten().collect(),
+            action_receipt_input_datas: action_receipt_input_datas.into_iter().flatten().collect(),
+            action_receipt_output_datas: action_receipt_output_datas
+                .into_iter()
+                .flatten()
+                .collect(),
+            execution_outcomes: execution_outcomes.into_iter().flatten().collect(),
+            execution_outcome_receipts: execution_outcome_receipts.into_iter().flatten().collect(),
+            accounts,
+        },
+        account_ids,
+    ))
 }

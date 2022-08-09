@@ -114,6 +114,13 @@ input ExecutionOutcomeReceipt {
   produced_receipt_id: String!
 }
 
+input Account {
+  account_id: ID!
+  created_by_receipt_id: String
+  deleted_by_receipt_id: String
+  last_update_block_height: String!
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
@@ -127,8 +134,10 @@ input BlockData {
   action_receipt_output_datas: [ActionReceiptOutputData!]!
   execution_outcomes: [ExecutionOutcome!]!
   execution_outcome_receipts: [ExecutionOutcomeReceipt!]!
+  accounts: [Account!]!
 }
 
 type Mutation {
   addBlockData(block_data: [BlockData!]!): [Void]
+  deleteAccounts(account_ids: [String!]!): Int
 }
