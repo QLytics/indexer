@@ -151,7 +151,12 @@ input BlockData {
   account_changes: [AccountChange!]!
 }
 
+input GenesisBlockData {
+  accounts: [Account!]!
+}
+
 type Mutation {
   addBlockData(block_data: [BlockData!]!): [Void]
+  addGenesisBlockData(block_data: [GenesisBlockData!]!): Int
   deleteAccounts(account_ids: [String!]!): Int
 }

@@ -2087,17 +2087,20 @@ dependencies = [
  "anyhow",
  "async-stream",
  "chrono",
+ "either",
  "futures-core",
  "graphql_client",
  "humantime",
  "itertools",
  "near-jsonrpc-client",
  "near-lake-framework",
+ "near-primitives",
  "parking_lot",
  "qlytics-core",
  "qlytics-graphql",
  "rayon",
  "reqwest",
+ "serde",
  "thiserror",
  "tokio",
 ]
@@ -2106,8 +2109,10 @@ dependencies = [
 name = "qlytics-send"
 version = "0.1.0"
 dependencies = [
+ "either",
  "futures-util",
  "graphql_client",
+ "itertools",
  "near-lake-framework",
  "qlytics-core",
  "qlytics-graphql",

@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+either = "1"
 futures-util = "0.3"
 graphql_client = "0.11"
+itertools = "0.10"
 near-lake-framework = "0.5"
 qlytics-core = { path = "../app-core" }
 qlytics-graphql = { path = "../app-graphql" }

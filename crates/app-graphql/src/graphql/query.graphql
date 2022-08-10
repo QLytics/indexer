@@ -4,6 +4,10 @@ mutation AddBlockData($block_data: [BlockData!]!) {
   }
 }
 
+mutation AddGenesisBlockData($block_data: [GenesisBlockData!]!) {
+  addGenesisBlockData(block_data: $block_data)
+}
+
 mutation DeleteAccounts($account_ids: [String!]!) {
   deleteAccounts(account_ids: $account_ids)
 }

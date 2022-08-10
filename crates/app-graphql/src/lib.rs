@@ -32,6 +32,40 @@ pub use add_block_data::{
     ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
 };
 
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/schema.graphql",
+    query_path = "src/graphql/query.graphql",
+    response_derives = "Debug"
+)]
+pub struct AddGenesisBlockData;
+
+pub use add_genesis_block_data::{Account as GenesisAccount, GenesisBlockData};
+impl From<Account> for GenesisAccount {
+    fn from(account: Account) -> Self {
+        let Account {
+            account_id,
+            created_by_receipt_id,
+            deleted_by_receipt_id,
+            last_update_block_height,
+        } = account;
+        Self {
+            account_id,
+            created_by_receipt_id,
+            deleted_by_receipt_id,
+            last_update_block_height,
+        }
+    }
+}
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/schema.graphql",
+    query_path = "src/graphql/query.graphql",
+    response_derives = "Debug"
+)]
+pub struct DeleteAccounts;
+
 impl add_block_data::Block {
     pub fn new(block_view: &BlockView, timestamp: NaiveDateTime) -> Self {
         Self {
@@ -386,11 +420,3 @@ impl From<&StateChangeCauseView> for UpdateReason {
         }
     }
 }
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "src/graphql/schema.graphql",
-    query_path = "src/graphql/query.graphql",
-    response_derives = "Debug"
-)]
-pub struct DeleteAccounts;

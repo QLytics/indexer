@@ -1,6 +1,7 @@
 #![feature(drain_filter)]
 
 mod account;
+mod genesis;
 mod log;
 mod receipt;
 mod state_change;
@@ -9,7 +10,9 @@ mod transaction;
 use account::handle_accounts;
 use async_stream::try_stream;
 use chrono::NaiveDateTime;
+use either::Either;
 use futures_core::stream::Stream;
+use genesis::handle_genesis;
 use itertools::Itertools;
 use near_jsonrpc_client::JsonRpcClient;
 use near_lake_framework::{
@@ -20,7 +23,7 @@ use near_lake_framework::{
 };
 use parking_lot::RwLock;
 use qlytics_core::Result;
-use qlytics_graphql::{Block, BlockData, Chunk};
+use qlytics_graphql::{Block, BlockData, Chunk, GenesisBlockData};
 use rayon::prelude::*;
 use receipt::{handle_chunk_receipts, handle_shard_receipts};
 use state_change::handle_state_changes;
@@ -32,7 +35,20 @@ use std::{
 };
 use transaction::handle_transactions;
 
-pub fn start_indexing() -> impl Stream<Item = Result<(BlockData, Vec<AccountId>)>> {
+pub async fn start_indexing(
+) -> Result<impl Stream<Item = Result<Either<GenesisBlockData, (BlockData, Vec<AccountId>)>>>> {
+    let start_block_height = env::var("START_BLOCK_HEIGHT")
+        .map(|s| s.parse::<u64>().unwrap_or_default())
+        .unwrap_or_default();
+    let genesis_block_data = if start_block_height == 0 {
+        let accounts = handle_genesis().await?;
+        Some(GenesisBlockData {
+            accounts: accounts.into_iter().map(|a| a.into()).collect(),
+        })
+    } else {
+        None
+    };
+
     let config = LakeConfigBuilder::default()
         .mainnet()
         .start_block_height(
@@ -54,7 +70,11 @@ pub fn start_indexing() -> impl Stream<Item = Result<(BlockData, Vec<AccountId>)
 
     let misses = Arc::new(RwLock::new(0));
 
-    try_stream! {
+    Ok(try_stream! {
+        if let Some(genesis_block_data) = genesis_block_data {
+            yield Either::Left(genesis_block_data);
+        }
+
         while let Some(msg) = stream.recv().await {
             let block_data = handle_streamer_message(
                 client.clone(),
@@ -67,14 +87,14 @@ pub fn start_indexing() -> impl Stream<Item = Result<(BlockData, Vec<AccountId>)
             )
             .await?;
 
-            yield block_data;
+            yield Either::Right(block_data);
 
             receipt_id_to_tx_hash.write().retain(|_, (_, idx)| {
                 *idx += 1;
                 *idx < 15
             });
         }
-    }
+    })
 }
 
 #[allow(clippy::too_many_arguments)]

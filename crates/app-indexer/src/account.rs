@@ -1,4 +1,4 @@
-use itertools::Either;
+use either::Either;
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
     views::{ActionView, ExecutionStatusView, ReceiptEnumView},
