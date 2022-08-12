@@ -15,6 +15,7 @@ use near_lake_framework::near_indexer_primitives::{
     },
     CryptoHash, IndexerChunkView,
 };
+use near_primitives::account::AccessKeyPermission as NearAccessKeyPermission;
 use strum::{Display, EnumString};
 use util::get_action_type_and_value;
 
@@ -27,7 +28,7 @@ use util::get_action_type_and_value;
 pub struct AddBlockData;
 
 pub use add_block_data::{
-    Account, AccountChange, ActionReceipt, ActionReceiptAction, ActionReceiptInputData,
+    AccessKey, Account, AccountChange, ActionReceipt, ActionReceiptAction, ActionReceiptInputData,
     ActionReceiptOutputData, Block, BlockData, Chunk, DataReceipt, ExecutionOutcome,
     ExecutionOutcomeReceipt, Receipt, Transaction, TransactionAction,
 };
@@ -40,7 +41,9 @@ pub use add_block_data::{
 )]
 pub struct AddGenesisBlockData;
 
-pub use add_genesis_block_data::{Account as GenesisAccount, GenesisBlockData};
+pub use add_genesis_block_data::{
+    AccessKey as GenesisAccessKey, Account as GenesisAccount, GenesisBlockData,
+};
 impl From<Account> for GenesisAccount {
     fn from(account: Account) -> Self {
         let Account {
@@ -53,6 +56,27 @@ impl From<Account> for GenesisAccount {
             account_id,
             created_by_receipt_id,
             deleted_by_receipt_id,
+            last_update_block_height,
+        }
+    }
+}
+
+impl From<AccessKey> for GenesisAccessKey {
+    fn from(access_key: AccessKey) -> Self {
+        let AccessKey {
+            public_key,
+            account_id,
+            created_by_receipt_id,
+            deleted_by_receipt_id,
+            permission_kind,
+            last_update_block_height,
+        } = access_key;
+        Self {
+            public_key,
+            account_id,
+            created_by_receipt_id,
+            deleted_by_receipt_id,
+            permission_kind,
             last_update_block_height,
         }
     }
@@ -417,6 +441,41 @@ impl From<&StateChangeCauseView> for UpdateReason {
             StateChangeCauseView::ValidatorAccountsUpdate => Self::ValidatorAccountsUpdate,
             StateChangeCauseView::Migration => Self::Migration,
             StateChangeCauseView::Resharding => Self::Resharding,
+        }
+    }
+}
+
+impl add_block_data::AccessKey {
+    pub fn new(
+        public_key: &PublicKey,
+        account_id: &AccountId,
+        permission: &NearAccessKeyPermission,
+        created_by_receipt_id: Option<CryptoHash>,
+        block_height: u64,
+    ) -> Self {
+        Self {
+            public_key: public_key.to_string(),
+            account_id: account_id.to_string(),
+            created_by_receipt_id: created_by_receipt_id.map(|receipt_id| receipt_id.to_string()),
+            deleted_by_receipt_id: None,
+            permission_kind: AccessKeyPermission::from(permission).to_string(),
+            last_update_block_height: block_height.to_string(),
+        }
+    }
+}
+
+#[derive(Display, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum AccessKeyPermission {
+    FullAccess,
+    FunctionCall,
+}
+
+impl From<&NearAccessKeyPermission> for AccessKeyPermission {
+    fn from(permission: &NearAccessKeyPermission) -> Self {
+        match permission {
+            NearAccessKeyPermission::FunctionCall { .. } => Self::FunctionCall,
+            NearAccessKeyPermission::FullAccess => Self::FullAccess,
         }
     }
 }

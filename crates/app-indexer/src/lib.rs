@@ -41,9 +41,10 @@ pub async fn start_indexing(
         .map(|s| s.parse::<u64>().unwrap_or_default())
         .unwrap_or_default();
     let genesis_block_data = if start_block_height == 0 {
-        let accounts = handle_genesis().await?;
+        let (accounts, access_keys) = handle_genesis().await?;
         Some(GenesisBlockData {
             accounts: accounts.into_iter().map(|a| a.into()).collect(),
+            access_keys: access_keys.into_iter().map(|a| a.into()).collect(),
         })
     } else {
         None
@@ -259,12 +260,14 @@ async fn handle_streamer_message(
 
     handle_shard_receipts(&msg, &receipt_id_to_tx_hash);
 
-    let (accounts, account_ids) = msg
+    let (accounts, account_ids, access_keys): (Vec<_>, Vec<_>, Vec<_>) = msg
         .shards
         .par_iter()
         .map(|shard| handle_accounts(&shard.receipt_execution_outcomes, msg.block.header.height))
         .flatten()
-        .partition_map(|val| val);
+        .collect::<Vec<_>>()
+        .into_iter()
+        .multiunzip();
 
     Ok((
         BlockData {
@@ -283,9 +286,10 @@ async fn handle_streamer_message(
                 .collect(),
             execution_outcomes: execution_outcomes.into_iter().flatten().collect(),
             execution_outcome_receipts: execution_outcome_receipts.into_iter().flatten().collect(),
-            accounts,
+            accounts: accounts.into_iter().flatten().collect(),
             account_changes: account_changes.into_iter().flatten().collect(),
+            access_keys: access_keys.into_iter().flatten().collect(),
         },
-        account_ids,
+        account_ids.into_iter().flatten().collect(),
     ))
 }

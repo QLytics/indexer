@@ -134,6 +134,15 @@ input AccountChange {
   index_in_block: Int!
 }
 
+input AccessKey {
+  public_key: String!
+  account_id: String!
+  created_by_receipt_id: String
+  deleted_by_receipt_id: String
+  permission_kind: String!
+  last_update_block_height: String!
+}
+
 input BlockData {
   block: Block!
   chunks: [Chunk!]!
@@ -149,10 +158,12 @@ input BlockData {
   execution_outcome_receipts: [ExecutionOutcomeReceipt!]!
   accounts: [Account!]!
   account_changes: [AccountChange!]!
+  access_keys: [AccessKey!]!
 }
 
 input GenesisBlockData {
   accounts: [Account!]!
+  access_keys: [AccessKey!]!
 }
 
 type Mutation {

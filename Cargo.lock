@@ -2074,6 +2074,7 @@ dependencies = [
  "hex",
  "near-crypto",
  "near-lake-framework",
+ "near-primitives",
  "serde",
  "serde_json",
  "strum",
