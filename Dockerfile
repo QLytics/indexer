@@ -1,4 +1,4 @@
-FROM rust:1.61-slim as rust
+FROM rust:1.65-slim as rust
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y \
@@ -18,7 +18,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM rust as build
 
 RUN apt-get update && apt-get install -y \
-    libsqlite3-dev
+    libsqlite3-dev libssl-dev pkg-config
 
 # Cache dependencies
 WORKDIR /app
