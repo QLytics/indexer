@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use itertools::Itertools;
 use near_lake_framework::near_indexer_primitives::{
     views::ReceiptEnumView, CryptoHash, IndexerChunkView, IndexerShard, StreamerMessage,
@@ -17,7 +16,7 @@ pub(crate) fn handle_chunk_receipts(
     chunk: &IndexerChunkView,
     block_hash: CryptoHash,
     chunk_hash: CryptoHash,
-    timestamp: NaiveDateTime,
+    timestamp: i64,
     receipt_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, (CryptoHash, u8)>>>,
     data_id_to_tx_hash: &Arc<RwLock<HashMap<CryptoHash, CryptoHash>>>,
     misses: &Arc<RwLock<u32>>,
@@ -63,7 +62,7 @@ pub(crate) fn handle_chunk_receipts(
                     receipt_view,
                     block_hash,
                     chunk_index as i64,
-                    timestamp.timestamp().to_string(),
+                    timestamp,
                     &outcome.execution_outcome.outcome,
                     shard.shard_id,
                 ));
@@ -121,12 +120,7 @@ pub(crate) fn handle_chunk_receipts(
                     .iter()
                     .enumerate()
                     .map(|(index, action_view)| {
-                        ActionReceiptAction::new(
-                            receipt_view,
-                            index as i64,
-                            action_view,
-                            timestamp.timestamp().to_string(),
-                        )
+                        ActionReceiptAction::new(receipt_view, index as i64, action_view, timestamp)
                     })
                     .collect();
                 let action_receipt_input_datas: Vec<_> = input_data_ids
@@ -163,7 +157,7 @@ pub(crate) fn handle_chunk_receipts(
                     block_hash,
                     chunk_hash,
                     chunk_index as i64,
-                    timestamp.timestamp().to_string(),
+                    timestamp,
                     tx_hash,
                 );
 

@@ -1,11 +1,10 @@
-use chrono::NaiveDateTime;
 use near_lake_framework::near_indexer_primitives::{views::StateChangeWithCauseView, CryptoHash};
 use qlytics_graphql::AccountChange;
 
 pub fn handle_state_changes(
     state_changes: &[StateChangeWithCauseView],
     block_hash: CryptoHash,
-    timestamp: NaiveDateTime,
+    timestamp: i64,
 ) -> Vec<AccountChange> {
     state_changes
         .iter()

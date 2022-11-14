@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use near_lake_framework::near_indexer_primitives::{
     CryptoHash, IndexerChunkView, IndexerTransactionWithOutcome,
 };
@@ -9,7 +8,7 @@ pub(crate) fn handle_transactions(
     chunk: &IndexerChunkView,
     chunk_hash: CryptoHash,
     block_hash: CryptoHash,
-    timestamp: NaiveDateTime,
+    timestamp: i64,
 ) -> (Vec<Transaction>, Vec<TransactionAction>) {
     let (transactions, transaction_actions): (Vec<_>, Vec<_>) = chunk
         .transactions

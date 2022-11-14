@@ -9,7 +9,6 @@ mod transaction;
 
 use account::handle_accounts;
 use async_stream::try_stream;
-use chrono::NaiveDateTime;
 use either::Either;
 use futures_core::stream::Stream;
 use genesis::handle_genesis;
@@ -112,7 +111,6 @@ async fn handle_streamer_message(
 
     let block_hash = msg.block.header.hash;
     let timestamp = msg.block.header.timestamp_nanosec as i64 / 1_000_000;
-    let timestamp = NaiveDateTime::from_timestamp(timestamp / 1_000, timestamp as u32 % 1_000);
 
     let block = Block::new(&msg.block, timestamp);
 

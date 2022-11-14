@@ -3,7 +3,6 @@ extern crate serde_json;
 
 mod util;
 
-use chrono::NaiveDateTime;
 use graphql_client::GraphQLQuery;
 use near_crypto::PublicKey;
 use near_lake_framework::near_indexer_primitives::{
@@ -91,12 +90,12 @@ impl From<AccessKey> for GenesisAccessKey {
 pub struct DeleteAccounts;
 
 impl add_block_data::Block {
-    pub fn new(block_view: &BlockView, timestamp: NaiveDateTime) -> Self {
+    pub fn new(block_view: &BlockView, timestamp: i64) -> Self {
         Self {
             hash: block_view.header.hash.to_string(),
-            height: block_view.header.height.to_string(),
+            height: block_view.header.height as i64,
             prev_hash: block_view.header.prev_hash.to_string(),
-            timestamp: timestamp.timestamp().to_string(),
+            timestamp,
             total_supply: block_view.header.total_supply.to_string(),
             gas_price: block_view.header.gas_price.to_string(),
             author_account_id: block_view.author.to_string(),
@@ -124,7 +123,7 @@ impl add_block_data::Transaction {
         block_hash: CryptoHash,
         chunk_hash: CryptoHash,
         chunk_index: i64,
-        timestamp: NaiveDateTime,
+        timestamp: i64,
         outcome: &ExecutionOutcomeView,
     ) -> Self {
         Self {
@@ -132,7 +131,7 @@ impl add_block_data::Transaction {
             block_hash: block_hash.to_string(),
             chunk_hash: chunk_hash.to_string(),
             chunk_index,
-            timestamp: timestamp.timestamp().to_string(),
+            timestamp,
             signer_id: transaction.signer_id.to_string(),
             public_key: transaction.public_key.to_string(),
             nonce: transaction.nonce.to_string(),
@@ -201,7 +200,7 @@ impl add_block_data::Receipt {
         block_hash: CryptoHash,
         chunk_hash: CryptoHash,
         chunk_index: i64,
-        timestamp: String,
+        timestamp: i64,
         transaction_hash: CryptoHash,
     ) -> Self {
         Self {
@@ -259,7 +258,7 @@ impl add_block_data::ActionReceiptAction {
         receipt: &ReceiptView,
         index: i64,
         action_view: &ActionView,
-        timestamp: String,
+        timestamp: i64,
     ) -> Self {
         let (action_kind, args) = get_action_type_and_value(action_view);
         Self {
@@ -298,7 +297,7 @@ impl add_block_data::ExecutionOutcome {
         receipt: &ReceiptView,
         block_hash: CryptoHash,
         chunk_index: i64,
-        timestamp: String,
+        timestamp: i64,
         outcome: &ExecutionOutcomeView,
         shard_id: u64,
     ) -> Self {
@@ -340,7 +339,7 @@ impl add_block_data::Account {
             account_id: account_id.to_string(),
             created_by_receipt_id: created_by_receipt_id.map(CryptoHash::to_string),
             deleted_by_receipt_id: None,
-            last_update_block_height: block_height.to_string(),
+            last_update_block_height: block_height as i64,
         }
     }
 }
@@ -349,7 +348,7 @@ impl add_block_data::AccountChange {
     pub fn new(
         state_change_with_cause: &StateChangeWithCauseView,
         block_hash: CryptoHash,
-        timestamp: NaiveDateTime,
+        timestamp: i64,
         index_in_block: i64,
     ) -> Option<Self> {
         let StateChangeWithCauseView { cause, value } = state_change_with_cause;
@@ -365,7 +364,7 @@ impl add_block_data::AccountChange {
 
         Some(Self {
             account_id,
-            timestamp: timestamp.to_string(),
+            timestamp,
             block_hash: block_hash.to_string(),
             transaction_hash: if let StateChangeCauseView::TransactionProcessing { tx_hash } = cause
             {
@@ -459,7 +458,7 @@ impl add_block_data::AccessKey {
             created_by_receipt_id: created_by_receipt_id.map(|receipt_id| receipt_id.to_string()),
             deleted_by_receipt_id: None,
             permission_kind: AccessKeyPermission::from(permission).to_string(),
-            last_update_block_height: block_height.to_string(),
+            last_update_block_height: block_height as i64,
         }
     }
 }
