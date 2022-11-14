@@ -8,9 +8,9 @@ type Void {
 
 input Block {
   hash: ID!
-  height: Int!
+  height: String!
   prev_hash: String!
-  timestamp: Int!
+  timestamp: String!
   total_supply: String!
   gas_price: String!
   author_account_id: String!
@@ -31,7 +31,7 @@ input Transaction {
   block_hash: String!
   chunk_hash: String!
   chunk_index: Int!
-  timestamp: Int!
+  timestamp: String!
   signer_id: String!
   public_key: String!
   nonce: String!
@@ -55,7 +55,7 @@ input Receipt {
   block_hash: String!
   chunk_hash: String!
   chunk_index: Int!
-  timestamp: Int!
+  timestamp: String!
   predecessor_id: String!
   receiver_id: String!
   receipt_kind: String!
@@ -82,7 +82,7 @@ input ActionReceiptAction {
   args: String!
   predecessor_id: String!
   receiver_id: String!
-  timestamp: Int!
+  timestamp: String!
 }
 
 input ActionReceiptInputData {
@@ -100,7 +100,7 @@ input ExecutionOutcome {
   receipt_id: ID!
   block_hash: String!
   chunk_index: Int!
-  timestamp: Int!
+  timestamp: String!
   gas_burnt: String!
   tokens_burnt: String!
   account_id: String!
@@ -118,12 +118,12 @@ input Account {
   account_id: ID!
   created_by_receipt_id: String
   deleted_by_receipt_id: String
-  last_update_block_height: Int!
+  last_update_block_height: String!
 }
 
 input AccountChange {
   account_id: String!
-  timestamp: Int!
+  timestamp: String!
   block_hash: String!
   transaction_hash: String
   receipt_id: String
@@ -140,7 +140,7 @@ input AccessKey {
   created_by_receipt_id: String
   deleted_by_receipt_id: String
   permission_kind: String!
-  last_update_block_height: Int!
+  last_update_block_height: String!
 }
 
 input BlockData {
@@ -167,7 +167,7 @@ input GenesisBlockData {
 }
 
 type Mutation {
-  addBlockData(block_data: [BlockData!]!): [Void]
+  addBlockData(block_data: [BlockData!]!): Int
   addGenesisBlockData(block_data: [GenesisBlockData!]!): Int
   deleteAccounts(account_ids: [String!]!): Int
 }

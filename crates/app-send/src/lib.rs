@@ -50,11 +50,24 @@ pub async fn send_block_data(client: &Client, block_data: Vec<BlockData>) -> Res
     }
     let variables = add_block_data::Variables { block_data };
     let query = AddBlockData::build_query(variables);
+
+    #[cfg(not(debug_assertions))]
     client
         .post("https://api.shrm.workers.dev")
         .json(&query)
         .send()
         .await?;
+    #[cfg(debug_assertions)]
+    let res = client
+        .post("https://api.shrm.workers.dev")
+        .json(&query)
+        .send()
+        .await?;
+    #[cfg(debug_assertions)]
+    if !res.status().is_success() {
+        let text = res.text().await?;
+        dbg!(text);
+    }
     Ok(())
 }
 
