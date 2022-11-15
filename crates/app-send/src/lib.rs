@@ -1,3 +1,4 @@
+use async_stream::try_stream;
 use either::Either;
 use futures_util::pin_mut;
 use graphql_client::GraphQLQuery;
@@ -11,37 +12,45 @@ use qlytics_graphql::{
 use reqwest::Client;
 use tokio_stream::{Stream, StreamExt};
 
-pub async fn send_data(
+pub async fn prepare_data(
     stream: impl Stream<Item = Result<Either<GenesisBlockData, (BlockData, Vec<AccountId>)>>>,
-) -> Result<()> {
-    let client = Client::new();
+) -> impl Stream<Item = Result<(Vec<GenesisBlockData>, Vec<BlockData>, Vec<String>)>> {
+    try_stream! {
+        let mut data = vec![];
+        for await block_data in stream {
+            data.push(block_data?);
+            if data.len() < 100 {
+                continue;
+            }
+            let (genesis_block_data, data): (Vec<_>, Vec<_>) =
+                data.drain(..).into_iter().partition_map(|val| val);
+            let (block_data, account_ids): (Vec<BlockData>, Vec<Vec<AccountId>>) =
+                data.into_iter().unzip();
+            let account_ids = account_ids
+                .into_iter()
+                .flatten()
+                .map(|account_id| account_id.to_string())
+                .collect();
 
+            yield (genesis_block_data, block_data, account_ids);
+        }
+    }
+}
+
+pub async fn send_data(
+    stream: impl Stream<Item = Result<(Vec<GenesisBlockData>, Vec<BlockData>, Vec<String>)>>,
+) {
     pin_mut!(stream);
 
-    let mut data = vec![];
-    while let Some(block_data) = stream.next().await {
-        data.push(block_data?);
-        if data.len() < 10 {
-            continue;
-        }
-        let (genesis_block_data, data): (Vec<_>, Vec<_>) =
-            data.drain(..).into_iter().partition_map(|val| val);
-        let (block_data, account_ids): (Vec<BlockData>, Vec<Vec<AccountId>>) =
-            data.into_iter().unzip();
-
-        send_genesis_block_data(&client, genesis_block_data).await?;
-
-        send_block_data(&client, block_data).await?;
-
-        let account_ids = account_ids
-            .into_iter()
-            .flatten()
-            .map(|account_id| account_id.to_string())
-            .collect();
-        send_deleted_accounts(&client, account_ids).await?;
+    while let Some(data) = stream.next().await {
+        let (genesis_block_data, block_data, account_ids) = data.unwrap();
+        let client = Client::new();
+        send_genesis_block_data(&client, genesis_block_data)
+            .await
+            .unwrap();
+        send_block_data(&client, block_data).await.unwrap();
+        send_deleted_accounts(&client, account_ids).await.unwrap();
     }
-
-    Ok(())
 }
 
 pub async fn send_block_data(client: &Client, block_data: Vec<BlockData>) -> Result<()> {

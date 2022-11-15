@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-stream = "0.3"
 either = "1"
 futures-util = "0.3"
 graphql_client = "0.11"

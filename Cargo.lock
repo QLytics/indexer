@@ -2110,6 +2110,7 @@ dependencies = [
 name = "qlytics-send"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "either",
  "futures-util",
  "graphql_client",
