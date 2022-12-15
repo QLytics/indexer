@@ -92,10 +92,10 @@ pub struct DeleteAccounts;
 impl add_block_data::Block {
     pub fn new(block_view: &BlockView, timestamp: i64) -> Self {
         Self {
-            hash: block_view.header.hash.to_string(),
-            height: block_view.header.height.to_string(),
-            prev_hash: block_view.header.prev_hash.to_string(),
-            timestamp: timestamp.to_string(),
+            block_hash: block_view.header.hash.to_string(),
+            block_height: block_view.header.height.to_string(),
+            prev_block_hash: block_view.header.prev_hash.to_string(),
+            block_timestamp: timestamp.to_string(),
             total_supply: block_view.header.total_supply.to_string(),
             gas_price: block_view.header.gas_price.to_string(),
             author_account_id: block_view.author.to_string(),
@@ -106,8 +106,8 @@ impl add_block_data::Block {
 impl add_block_data::Chunk {
     pub fn new(chunk_view: &IndexerChunkView, block_hash: CryptoHash) -> Self {
         Self {
-            hash: chunk_view.header.chunk_hash.to_string(),
-            block_hash: block_hash.to_string(),
+            chunk_hash: chunk_view.header.chunk_hash.to_string(),
+            included_in_block_hash: block_hash.to_string(),
             shard_id: chunk_view.header.shard_id.to_string(),
             signature: chunk_view.header.signature.to_string(),
             gas_limit: chunk_view.header.gas_limit.to_string(),
@@ -122,25 +122,25 @@ impl add_block_data::Transaction {
         transaction: &SignedTransactionView,
         block_hash: CryptoHash,
         chunk_hash: CryptoHash,
-        chunk_index: i64,
-        timestamp: i64,
+        index_in_chunk: i64,
+        block_timestamp: i64,
         outcome: &ExecutionOutcomeView,
     ) -> Self {
         Self {
-            hash: transaction.hash.to_string(),
-            block_hash: block_hash.to_string(),
-            chunk_hash: chunk_hash.to_string(),
-            chunk_index,
-            timestamp: timestamp.to_string(),
-            signer_id: transaction.signer_id.to_string(),
-            public_key: transaction.public_key.to_string(),
+            transaction_hash: transaction.hash.to_string(),
+            included_in_block_hash: block_hash.to_string(),
+            included_in_chunk_hash: chunk_hash.to_string(),
+            index_in_chunk,
+            block_timestamp: block_timestamp.to_string(),
+            signer_account_id: transaction.signer_id.to_string(),
+            signer_public_key: transaction.public_key.to_string(),
             nonce: transaction.nonce.to_string(),
-            receiver_id: transaction.receiver_id.to_string(),
+            receiver_account_id: transaction.receiver_id.to_string(),
             signature: transaction.signature.to_string(),
             status: ExecutionOutcomeStatus::from(outcome.status.clone()).to_string(),
-            receipt_id: outcome.receipt_ids.first().unwrap().to_string(),
-            gas_burnt: outcome.gas_burnt.to_string(),
-            tokens_burnt: outcome.tokens_burnt.to_string(),
+            converted_into_receipt_id: outcome.receipt_ids.first().unwrap().to_string(),
+            receipt_conversion_gas_burnt: outcome.gas_burnt.to_string(),
+            receipt_conversion_tokens_burnt: outcome.tokens_burnt.to_string(),
         }
     }
 }
@@ -168,13 +168,13 @@ pub enum ExecutionOutcomeStatus {
 impl add_block_data::TransactionAction {
     pub fn new(
         transaction: &SignedTransactionView,
-        transaction_index: i64,
+        index_in_transaction: i64,
         action_view: &ActionView,
     ) -> Self {
         let (action_kind, args) = get_action_type_and_value(action_view);
         Self {
-            hash: transaction.hash.to_string(),
-            transaction_index,
+            transaction_hash: transaction.hash.to_string(),
+            index_in_transaction,
             action_kind: action_kind.to_string(),
             args: args.to_string(),
         }
@@ -199,23 +199,23 @@ impl add_block_data::Receipt {
         receipt: &ReceiptView,
         block_hash: CryptoHash,
         chunk_hash: CryptoHash,
-        chunk_index: i64,
+        index_in_chunk: i64,
         timestamp: i64,
         transaction_hash: CryptoHash,
     ) -> Self {
         Self {
             receipt_id: receipt.receipt_id.to_string(),
-            block_hash: block_hash.to_string(),
-            chunk_hash: chunk_hash.to_string(),
-            chunk_index,
-            timestamp: timestamp.to_string(),
-            predecessor_id: receipt.predecessor_id.to_string(),
-            receiver_id: receipt.receiver_id.to_string(),
+            included_in_block_hash: block_hash.to_string(),
+            included_in_chunk_hash: chunk_hash.to_string(),
+            index_in_chunk,
+            included_in_block_timestamp: timestamp.to_string(),
+            predecessor_account_id: receipt.predecessor_id.to_string(),
+            receiver_account_id: receipt.receiver_id.to_string(),
             receipt_kind: match receipt.receipt {
                 ReceiptEnumView::Action { .. } => ReceiptKind::Action.to_string(),
                 ReceiptEnumView::Data { .. } => ReceiptKind::Data.to_string(),
             },
-            transaction_hash: transaction_hash.to_string(),
+            originated_from_transaction_hash: transaction_hash.to_string(),
         }
     }
 }

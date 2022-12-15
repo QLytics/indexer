@@ -7,18 +7,18 @@ type Void {
 }
 
 input Block {
-  hash: ID!
-  height: String!
-  prev_hash: String!
-  timestamp: String!
+  block_hash: ID!
+  block_height: String!
+  prev_block_hash: String!
+  block_timestamp: String!
   total_supply: String!
   gas_price: String!
   author_account_id: String!
 }
 
 input Chunk {
-  hash: ID!
-  block_hash: String!
+  chunk_hash: ID!
+  included_in_block_hash: String!
   shard_id: String!
   signature: String!
   gas_limit: String!
@@ -27,39 +27,39 @@ input Chunk {
 }
 
 input Transaction {
-  hash: ID!
-  block_hash: String!
-  chunk_hash: String!
-  chunk_index: Int!
-  timestamp: String!
-  signer_id: String!
-  public_key: String!
+  transaction_hash: ID!
+  included_in_block_hash: String!
+  included_in_chunk_hash: String!
+  index_in_chunk: Int!
+  block_timestamp: String!
+  signer_account_id: String!
+  signer_public_key: String!
   nonce: String!
-  receiver_id: String!
+  receiver_account_id: String!
   signature: String!
   status: String!
-  receipt_id: String!
-  gas_burnt: String!
-  tokens_burnt: String!
+  converted_into_receipt_id: String!
+  receipt_conversion_gas_burnt: String!
+  receipt_conversion_tokens_burnt: String!
 }
 
 input TransactionAction {
-  hash: ID!
-  transaction_index: Int!
+  transaction_hash: ID!
+  index_in_transaction: Int!
   action_kind: String!
   args: String!
 }
 
 input Receipt {
   receipt_id: ID!
-  block_hash: String!
-  chunk_hash: String!
-  chunk_index: Int!
-  timestamp: String!
-  predecessor_id: String!
-  receiver_id: String!
+  included_in_block_hash: String!
+  included_in_chunk_hash: String!
+  index_in_chunk: Int!
+  included_in_block_timestamp: String!
+  predecessor_account_id: String!
+  receiver_account_id: String!
   receipt_kind: String!
-  transaction_hash: String!
+  originated_from_transaction_hash: String!
 }
 
 input DataReceipt {
