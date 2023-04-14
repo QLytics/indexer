@@ -10,6 +10,7 @@ use qlytics_graphql::{
     BlockData, DeleteAccounts, GenesisBlockData,
 };
 use reqwest::Client;
+use std::env;
 use tokio_stream::{Stream, StreamExt};
 
 pub async fn prepare_data(
@@ -60,20 +61,16 @@ pub async fn send_block_data(client: &Client, block_data: Vec<BlockData>) -> Res
     let variables = add_block_data::Variables { block_data };
     let query = AddBlockData::build_query(variables);
 
-    #[cfg(not(debug_assertions))]
-    client
-        .post("https://api.shrm.workers.dev")
-        .json(&query)
-        .send()
-        .await?;
-    #[cfg(debug_assertions)]
     let res = client
-        .post("https://api.shrm.workers.dev")
+        .post(env::var("API_URL").unwrap())
         .json(&query)
         .send()
         .await?;
-    #[cfg(debug_assertions)]
-    if !res.status().is_success() {
+    if env::var("DEBUG")
+        .map(|dbg| dbg.parse::<bool>().unwrap())
+        .unwrap_or_default()
+        && !res.status().is_success()
+    {
         let text = res.text().await?;
         dbg!(text);
     }
@@ -90,7 +87,7 @@ pub async fn send_genesis_block_data(
     let variables = add_genesis_block_data::Variables { block_data };
     let query = AddGenesisBlockData::build_query(variables);
     client
-        .post("https://api.shrm.workers.dev")
+        .post(env::var("API_URL").unwrap())
         .json(&query)
         .send()
         .await?;
@@ -104,7 +101,7 @@ pub async fn send_deleted_accounts(client: &Client, account_ids: Vec<String>) ->
     let variables = delete_accounts::Variables { account_ids };
     let query = DeleteAccounts::build_query(variables);
     client
-        .post("https://api.shrm.workers.dev")
+        .post(env::var("API_URL").unwrap())
         .json(&query)
         .send()
         .await?;
