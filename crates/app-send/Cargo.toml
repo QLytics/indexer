@@ -7,9 +7,9 @@ edition = "2021"
 async-stream = "0.3"
 either = "1"
 futures-util = "0.3"
-graphql_client = "0.11"
+graphql_client = "0.12"
 itertools = "0.10"
-near-lake-framework = "0.5"
+near-lake-framework = "0.7"
 qlytics-core = { path = "../app-core" }
 qlytics-graphql = { path = "../app-graphql" }
 reqwest = "0.11"

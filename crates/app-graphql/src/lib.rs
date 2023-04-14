@@ -3,6 +3,7 @@ extern crate serde_json;
 
 mod util;
 
+use base64::{engine::general_purpose, Engine as _};
 use graphql_client::GraphQLQuery;
 use near_crypto::PublicKey;
 use near_lake_framework::near_indexer_primitives::{
@@ -190,6 +191,7 @@ pub enum ActionKind {
     Transfer,
     Stake,
     AddKey,
+    Delegate,
     DeleteKey,
     DeleteAccount,
 }
@@ -232,7 +234,7 @@ impl add_block_data::DataReceipt {
         Self {
             data_id: data_id.to_string(),
             receipt_id: receipt_id.to_string(),
-            data_base64: data.map(base64::encode),
+            data_base64: data.map(|d| general_purpose::STANDARD.encode(d)),
         }
     }
 }

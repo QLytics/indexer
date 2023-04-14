@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose, Engine as _};
 use near_lake_framework::near_indexer_primitives::views::ActionView;
 
 use crate::ActionKind;
@@ -11,7 +12,7 @@ pub(crate) fn get_action_type_and_value(
             ActionKind::DeployContract,
             json!({
                 "code_sha256":  hex::encode(
-                    base64::decode(code).expect("code expected to be encoded to base64")
+                    general_purpose::STANDARD.decode(code).expect("code expected to be encoded to base64")
                 )
             }),
         ),
@@ -27,7 +28,7 @@ pub(crate) fn get_action_type_and_value(
                 "gas": gas,
                 "deposit": deposit.to_string(),
             });
-            if let Ok(decoded_args) = base64::decode(args) {
+            if let Ok(decoded_args) = general_purpose::STANDARD.decode(args) {
                 if let Ok(mut args_json) = serde_json::from_slice(&decoded_args) {
                     escape_json(&mut args_json);
                     arguments["args_json"] = args_json;
@@ -66,6 +67,16 @@ pub(crate) fn get_action_type_and_value(
             ActionKind::DeleteAccount,
             json!({
                 "beneficiary_id": beneficiary_id,
+            }),
+        ),
+        ActionView::Delegate {
+            delegate_action,
+            signature,
+        } => (
+            ActionKind::Delegate,
+            json!({
+                "delegate_action": delegate_action,
+                "signature": signature
             }),
         ),
     }
